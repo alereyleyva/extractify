@@ -1,0 +1,24 @@
+{
+  "name": "@extractify/auth",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "@extractify/db": "workspace:*",
+    "@extractify/env": "workspace:*",
+    "better-auth": "catalog:",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@extractify/config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}

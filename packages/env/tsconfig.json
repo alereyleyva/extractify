@@ -1,0 +1,3 @@
+{
+  "extends": "@extractify/config/tsconfig.base.json"
+}

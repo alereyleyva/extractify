@@ -1,33 +1,29 @@
 import { createAmazonBedrock } from "@ai-sdk/amazon-bedrock";
 import { fromNodeProviderChain } from "@aws-sdk/credential-providers";
+import { getActiveModelVersionForOwner } from "@extractify/db/models";
 import { env } from "@extractify/env/server";
+import {
+  AttributeListSchema,
+  type AttributeSchema,
+} from "@extractify/shared/attribute-model";
 import { createServerFn } from "@tanstack/react-start";
 import { generateText, Output } from "ai";
 import { z } from "zod";
 import { ExtractionStrategyFactory } from "@/lib/extractors/factory";
-
-type AttributeInput = {
-  id?: string;
-  name: string;
-  description?: string;
-  type: "string" | "array" | "record" | "arrayOfRecords";
-  children?: AttributeInput[];
-};
-
-const AttributeSchema: z.ZodType<AttributeInput> = z.object({
-  name: z.string().min(1),
-  description: z.string().optional(),
-  type: z
-    .enum(["string", "array", "record", "arrayOfRecords"])
-    .default("string"),
-  children: z.array(z.lazy(() => AttributeSchema)).optional(),
-});
+import { requireUserId } from "@/lib/server/require-user-id";
 
 const ExtractDataSchema = z.object({
   fileData: z.instanceof(ArrayBuffer),
   fileName: z.string().min(1),
   fileType: z.string().min(1),
-  attributes: z.array(AttributeSchema).min(1),
+  attributes: AttributeListSchema,
+});
+
+const ExtractDataFromModelSchema = z.object({
+  modelId: z.string().min(1),
+  fileData: z.instanceof(ArrayBuffer),
+  fileName: z.string().min(1),
+  fileType: z.string().min(1),
 });
 
 function createNestedFieldSchema(
@@ -181,30 +177,61 @@ function getBedrockModel() {
   return bedrock("qwen.qwen3-32b-v1:0");
 }
 
+async function runExtraction(input: {
+  fileData: ArrayBuffer;
+  fileName: string;
+  fileType: string;
+  attributes: z.infer<typeof AttributeSchema>[];
+}) {
+  const factory = new ExtractionStrategyFactory();
+  const strategy = factory.getStrategy(input.fileType);
+  const documentText = await strategy.extractText(
+    input.fileData,
+    input.fileName,
+  );
+
+  const schema = createAttributeSchema(input.attributes);
+  const bedrockModel = getBedrockModel();
+  const prompt = buildExtractionPrompt(documentText, input.attributes);
+
+  const { output, totalUsage } = await generateText({
+    model: bedrockModel,
+    output: Output.object({
+      schema,
+    }),
+    prompt,
+  });
+
+  return {
+    data: output as Record<string, object>,
+    usage: totalUsage,
+  };
+}
+
 export const extractData = createServerFn({ method: "POST" })
   .inputValidator(ExtractDataSchema)
   .handler(async ({ data }) => {
-    const factory = new ExtractionStrategyFactory();
-    const strategy = factory.getStrategy(data.fileType);
-    const documentText = await strategy.extractText(
-      data.fileData,
-      data.fileName,
+    await requireUserId();
+    return runExtraction(data);
+  });
+
+export const extractDataFromModel = createServerFn({ method: "POST" })
+  .inputValidator(ExtractDataFromModelSchema)
+  .handler(async ({ data }) => {
+    const ownerId = await requireUserId();
+    const activeVersion = await getActiveModelVersionForOwner(
+      ownerId,
+      data.modelId,
     );
 
-    const schema = createAttributeSchema(data.attributes);
-    const bedrockModel = getBedrockModel();
-    const prompt = buildExtractionPrompt(documentText, data.attributes);
+    if (!activeVersion) {
+      throw new Error("Model not found");
+    }
 
-    const { output, totalUsage } = await generateText({
-      model: bedrockModel,
-      output: Output.object({
-        schema,
-      }),
-      prompt,
+    return runExtraction({
+      fileData: data.fileData,
+      fileName: data.fileName,
+      fileType: data.fileType,
+      attributes: activeVersion.attributes,
     });
-
-    return {
-      data: output,
-      usage: totalUsage,
-    };
   });

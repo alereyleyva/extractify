@@ -1,4 +1,4 @@
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouter } from "@tanstack/react-router";
 import { LogOut } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -9,6 +9,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { authClient } from "@/lib/auth-client";
 
+type UserMenuUser = {
+  name?: string | null;
+  image?: string | null;
+};
+
+type UserMenuProps = {
+  user: UserMenuUser;
+};
+
 function getInitials(name?: string | null) {
   if (!name) return "U";
   const parts = name.trim().split(" ");
@@ -17,15 +26,9 @@ function getInitials(name?: string | null) {
   return `${first}${last}`.toUpperCase() || "U";
 }
 
-export default function UserMenu() {
+export default function UserMenu({ user }: UserMenuProps) {
   const navigate = useNavigate();
-  const { data: session } = authClient.useSession();
-
-  if (!session) {
-    return null;
-  }
-
-  const { user } = session;
+  const router = useRouter();
 
   return (
     <DropdownMenu>
@@ -43,7 +46,8 @@ export default function UserMenu() {
           onClick={() => {
             authClient.signOut({
               fetchOptions: {
-                onSuccess: () => {
+                onSuccess: async () => {
+                  await router.invalidate();
                   navigate({
                     to: "/",
                   });

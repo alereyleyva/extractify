@@ -1,0 +1,16 @@
+{
+  "name": "@extractify/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./attribute-model": "./src/attribute-model.ts"
+  },
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@extractify/config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}

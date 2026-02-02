@@ -1,0 +1,172 @@
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { ArrowLeft, ArrowRight, Check, Pencil, Plus } from "lucide-react";
+import { useMemo } from "react";
+import { toast } from "sonner";
+import { RouteError } from "@/components/route-error";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { setActiveModelVersion } from "@/functions/models";
+import { formatDate } from "@/lib/date";
+import { getErrorMessage } from "@/lib/error-handling";
+import { fetchModel } from "@/lib/models-queries";
+import type { ModelDetail } from "@/lib/models-types";
+import { requireUser } from "@/lib/route-guards";
+
+export const Route = createFileRoute("/models/$modelId/")({
+  component: ModelDetailPage,
+  errorComponent: ({ error }) => (
+    <RouteError
+      error={error}
+      title="Unable to load model"
+      actionHref="/models"
+      actionLabel="Back to models"
+    />
+  ),
+  loader: async ({ params }) => {
+    return fetchModel(params.modelId);
+  },
+  beforeLoad: async () => {
+    const user = await requireUser();
+    return { user };
+  },
+});
+
+function ModelDetailPage() {
+  const router = useRouter();
+  const model = Route.useLoaderData() as ModelDetail;
+  const setActiveFn = useServerFn(setActiveModelVersion);
+
+  const sortedVersions = useMemo(() => {
+    if (!model?.versions) {
+      return [];
+    }
+    return [...model.versions].sort(
+      (a, b) => b.versionNumber - a.versionNumber,
+    );
+  }, [model]);
+
+  const handleSetActive = async (versionId: string) => {
+    try {
+      await setActiveFn({ data: { versionId } });
+      toast.success("Active version updated");
+      await router.invalidate();
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background pt-20 pb-16">
+      <div className="container mx-auto max-w-5xl px-6">
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Button asChild size="sm" variant="outline">
+              <Link to="/models">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back
+              </Link>
+            </Button>
+            <div>
+              <h1 className="font-bold text-3xl tracking-tight">
+                {model.name}
+              </h1>
+              <p className="mt-1 text-muted-foreground text-sm">
+                {model.description || "No description added yet."}
+              </p>
+            </div>
+          </div>
+          <Button asChild variant="outline">
+            <Link to="/models/$modelId/edit" params={{ modelId: model.id }}>
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit model
+            </Link>
+          </Button>
+        </div>
+
+        <Card className="border">
+          <CardContent className="p-6">
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="font-semibold text-xl">Versions</h2>
+                <p className="text-muted-foreground text-sm">
+                  Review version history and manage the active schema.
+                </p>
+              </div>
+              <Button asChild>
+                <Link
+                  to="/models/$modelId/versions/new"
+                  params={{ modelId: model.id }}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  New version
+                </Link>
+              </Button>
+            </div>
+
+            {sortedVersions.length === 0 ? (
+              <p className="text-muted-foreground text-sm">No versions yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {sortedVersions.map((version) => (
+                  <div
+                    key={version.id}
+                    className="rounded-lg border border-border/70 p-4"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-semibold">
+                            v{version.versionNumber}
+                          </span>
+                          {version.isActive && (
+                            <span className="rounded-full bg-primary/10 px-2.5 py-0.5 font-medium text-primary text-xs">
+                              Active
+                            </span>
+                          )}
+                          {version.createdAt && (
+                            <span className="text-muted-foreground text-xs">
+                              {formatDate(version.createdAt)}
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-2 text-muted-foreground text-sm">
+                          {version.changelog ||
+                            "No changelog provided for this version."}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {!version.isActive && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleSetActive(version.id)}
+                          >
+                            <Check className="mr-2 h-4 w-4" />
+                            Set active
+                          </Button>
+                        )}
+                        <Button asChild size="sm" variant="ghost">
+                          <Link
+                            to="/models/$modelId/versions/$versionId"
+                            params={{
+                              modelId: model.id,
+                              versionId: version.id,
+                            }}
+                          >
+                            View details
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}

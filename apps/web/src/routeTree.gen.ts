@@ -9,10 +9,23 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ModelsRouteImport } from './routes/models'
 import { Route as ExtractionRouteImport } from './routes/extraction'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ModelsIndexRouteImport } from './routes/models.index'
+import { Route as ModelsNewRouteImport } from './routes/models.new'
+import { Route as ModelsModelIdRouteImport } from './routes/models.$modelId'
+import { Route as ModelsModelIdIndexRouteImport } from './routes/models.$modelId.index'
+import { Route as ModelsModelIdEditRouteImport } from './routes/models.$modelId.edit'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ModelsModelIdVersionsNewRouteImport } from './routes/models.$modelId.versions.new'
+import { Route as ModelsModelIdVersionsVersionIdRouteImport } from './routes/models.$modelId.versions.$versionId'
 
+const ModelsRoute = ModelsRouteImport.update({
+  id: '/models',
+  path: '/models',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ExtractionRoute = ExtractionRouteImport.update({
   id: '/extraction',
   path: '/extraction',
@@ -23,44 +36,143 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ModelsIndexRoute = ModelsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ModelsRoute,
+} as any)
+const ModelsNewRoute = ModelsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => ModelsRoute,
+} as any)
+const ModelsModelIdRoute = ModelsModelIdRouteImport.update({
+  id: '/$modelId',
+  path: '/$modelId',
+  getParentRoute: () => ModelsRoute,
+} as any)
+const ModelsModelIdIndexRoute = ModelsModelIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ModelsModelIdRoute,
+} as any)
+const ModelsModelIdEditRoute = ModelsModelIdEditRouteImport.update({
+  id: '/edit',
+  path: '/edit',
+  getParentRoute: () => ModelsModelIdRoute,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ModelsModelIdVersionsNewRoute =
+  ModelsModelIdVersionsNewRouteImport.update({
+    id: '/versions/new',
+    path: '/versions/new',
+    getParentRoute: () => ModelsModelIdRoute,
+  } as any)
+const ModelsModelIdVersionsVersionIdRoute =
+  ModelsModelIdVersionsVersionIdRouteImport.update({
+    id: '/versions/$versionId',
+    path: '/versions/$versionId',
+    getParentRoute: () => ModelsModelIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/extraction': typeof ExtractionRoute
+  '/models': typeof ModelsRouteWithChildren
+  '/models/$modelId': typeof ModelsModelIdRouteWithChildren
+  '/models/new': typeof ModelsNewRoute
+  '/models/': typeof ModelsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/models/$modelId/edit': typeof ModelsModelIdEditRoute
+  '/models/$modelId/': typeof ModelsModelIdIndexRoute
+  '/models/$modelId/versions/$versionId': typeof ModelsModelIdVersionsVersionIdRoute
+  '/models/$modelId/versions/new': typeof ModelsModelIdVersionsNewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/extraction': typeof ExtractionRoute
+  '/models/new': typeof ModelsNewRoute
+  '/models': typeof ModelsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/models/$modelId/edit': typeof ModelsModelIdEditRoute
+  '/models/$modelId': typeof ModelsModelIdIndexRoute
+  '/models/$modelId/versions/$versionId': typeof ModelsModelIdVersionsVersionIdRoute
+  '/models/$modelId/versions/new': typeof ModelsModelIdVersionsNewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/extraction': typeof ExtractionRoute
+  '/models': typeof ModelsRouteWithChildren
+  '/models/$modelId': typeof ModelsModelIdRouteWithChildren
+  '/models/new': typeof ModelsNewRoute
+  '/models/': typeof ModelsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/models/$modelId/edit': typeof ModelsModelIdEditRoute
+  '/models/$modelId/': typeof ModelsModelIdIndexRoute
+  '/models/$modelId/versions/$versionId': typeof ModelsModelIdVersionsVersionIdRoute
+  '/models/$modelId/versions/new': typeof ModelsModelIdVersionsNewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/extraction' | '/api/auth/$'
+  fullPaths:
+    | '/'
+    | '/extraction'
+    | '/models'
+    | '/models/$modelId'
+    | '/models/new'
+    | '/models/'
+    | '/api/auth/$'
+    | '/models/$modelId/edit'
+    | '/models/$modelId/'
+    | '/models/$modelId/versions/$versionId'
+    | '/models/$modelId/versions/new'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/extraction' | '/api/auth/$'
-  id: '__root__' | '/' | '/extraction' | '/api/auth/$'
+  to:
+    | '/'
+    | '/extraction'
+    | '/models/new'
+    | '/models'
+    | '/api/auth/$'
+    | '/models/$modelId/edit'
+    | '/models/$modelId'
+    | '/models/$modelId/versions/$versionId'
+    | '/models/$modelId/versions/new'
+  id:
+    | '__root__'
+    | '/'
+    | '/extraction'
+    | '/models'
+    | '/models/$modelId'
+    | '/models/new'
+    | '/models/'
+    | '/api/auth/$'
+    | '/models/$modelId/edit'
+    | '/models/$modelId/'
+    | '/models/$modelId/versions/$versionId'
+    | '/models/$modelId/versions/new'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ExtractionRoute: typeof ExtractionRoute
+  ModelsRoute: typeof ModelsRouteWithChildren
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/models': {
+      id: '/models'
+      path: '/models'
+      fullPath: '/models'
+      preLoaderRoute: typeof ModelsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/extraction': {
       id: '/extraction'
       path: '/extraction'
@@ -75,6 +187,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/models/': {
+      id: '/models/'
+      path: '/'
+      fullPath: '/models/'
+      preLoaderRoute: typeof ModelsIndexRouteImport
+      parentRoute: typeof ModelsRoute
+    }
+    '/models/new': {
+      id: '/models/new'
+      path: '/new'
+      fullPath: '/models/new'
+      preLoaderRoute: typeof ModelsNewRouteImport
+      parentRoute: typeof ModelsRoute
+    }
+    '/models/$modelId': {
+      id: '/models/$modelId'
+      path: '/$modelId'
+      fullPath: '/models/$modelId'
+      preLoaderRoute: typeof ModelsModelIdRouteImport
+      parentRoute: typeof ModelsRoute
+    }
+    '/models/$modelId/': {
+      id: '/models/$modelId/'
+      path: '/'
+      fullPath: '/models/$modelId/'
+      preLoaderRoute: typeof ModelsModelIdIndexRouteImport
+      parentRoute: typeof ModelsModelIdRoute
+    }
+    '/models/$modelId/edit': {
+      id: '/models/$modelId/edit'
+      path: '/edit'
+      fullPath: '/models/$modelId/edit'
+      preLoaderRoute: typeof ModelsModelIdEditRouteImport
+      parentRoute: typeof ModelsModelIdRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -82,12 +229,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/models/$modelId/versions/new': {
+      id: '/models/$modelId/versions/new'
+      path: '/versions/new'
+      fullPath: '/models/$modelId/versions/new'
+      preLoaderRoute: typeof ModelsModelIdVersionsNewRouteImport
+      parentRoute: typeof ModelsModelIdRoute
+    }
+    '/models/$modelId/versions/$versionId': {
+      id: '/models/$modelId/versions/$versionId'
+      path: '/versions/$versionId'
+      fullPath: '/models/$modelId/versions/$versionId'
+      preLoaderRoute: typeof ModelsModelIdVersionsVersionIdRouteImport
+      parentRoute: typeof ModelsModelIdRoute
+    }
   }
 }
+
+interface ModelsModelIdRouteChildren {
+  ModelsModelIdEditRoute: typeof ModelsModelIdEditRoute
+  ModelsModelIdIndexRoute: typeof ModelsModelIdIndexRoute
+  ModelsModelIdVersionsVersionIdRoute: typeof ModelsModelIdVersionsVersionIdRoute
+  ModelsModelIdVersionsNewRoute: typeof ModelsModelIdVersionsNewRoute
+}
+
+const ModelsModelIdRouteChildren: ModelsModelIdRouteChildren = {
+  ModelsModelIdEditRoute: ModelsModelIdEditRoute,
+  ModelsModelIdIndexRoute: ModelsModelIdIndexRoute,
+  ModelsModelIdVersionsVersionIdRoute: ModelsModelIdVersionsVersionIdRoute,
+  ModelsModelIdVersionsNewRoute: ModelsModelIdVersionsNewRoute,
+}
+
+const ModelsModelIdRouteWithChildren = ModelsModelIdRoute._addFileChildren(
+  ModelsModelIdRouteChildren,
+)
+
+interface ModelsRouteChildren {
+  ModelsModelIdRoute: typeof ModelsModelIdRouteWithChildren
+  ModelsNewRoute: typeof ModelsNewRoute
+  ModelsIndexRoute: typeof ModelsIndexRoute
+}
+
+const ModelsRouteChildren: ModelsRouteChildren = {
+  ModelsModelIdRoute: ModelsModelIdRouteWithChildren,
+  ModelsNewRoute: ModelsNewRoute,
+  ModelsIndexRoute: ModelsIndexRoute,
+}
+
+const ModelsRouteWithChildren =
+  ModelsRoute._addFileChildren(ModelsRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ExtractionRoute: ExtractionRoute,
+  ModelsRoute: ModelsRouteWithChildren,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport

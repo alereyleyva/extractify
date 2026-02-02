@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@extractify/env": "workspace:*",
+    "@extractify/shared": "workspace:*",
     "dotenv": "catalog:",
     "drizzle-orm": "^0.45.1",
     "pg": "^8.17.1",

@@ -7,12 +7,17 @@ import {
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import Header from "@/components/header";
 import { Toaster } from "@/components/ui/sonner";
+import { getCurrentUser } from "@/functions/get-current-user";
 
 import appCss from "../index.css?url";
 
 export type RouterAppContext = object;
 
 export const Route = createRootRouteWithContext<RouterAppContext>()({
+  loader: async () => {
+    const user = await getCurrentUser();
+    return { user };
+  },
   head: () => ({
     meta: [
       {
@@ -38,6 +43,13 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 });
 
 function RootDocument() {
+  const { user } = Route.useLoaderData() as {
+    user: {
+      name?: string | null;
+      image?: string | null;
+    } | null;
+  };
+
   return (
     <html lang="en" className="dark">
       <head>
@@ -45,7 +57,7 @@ function RootDocument() {
       </head>
       <body>
         <div className="relative min-h-svh">
-          <Header />
+          <Header user={user} />
           <Outlet />
         </div>
         <Toaster richColors />

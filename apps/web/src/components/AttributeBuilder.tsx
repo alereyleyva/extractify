@@ -1,3 +1,7 @@
+import type {
+  AttributeInput,
+  AttributeType,
+} from "@extractify/shared/attribute-model";
 import { ChevronDown, ChevronRight, Plus, Trash2, Type } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -14,19 +18,12 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { createAttribute } from "@/lib/validation";
 
-export type AttributeType = "string" | "array" | "record" | "arrayOfRecords";
-
-export type Attribute = {
-  id: string;
-  name: string;
-  description?: string;
-  type: AttributeType;
-  children?: Attribute[];
-};
+export type Attribute = AttributeInput;
 
 type AttributeBuilderProps = {
   attributes: Attribute[];
   onAttributesChange: (attributes: Attribute[]) => void;
+  readOnly?: boolean;
 };
 
 function updateAttributeInTree(
@@ -163,6 +160,7 @@ type AttributeItemProps = {
     childId: string,
     updates: Partial<Attribute>,
   ) => void;
+  readOnly?: boolean;
 };
 
 function AttributeItem({
@@ -174,6 +172,7 @@ function AttributeItem({
   onAddChild,
   onRemoveChild,
   onUpdateChild,
+  readOnly = false,
 }: AttributeItemProps) {
   const [isExpanded, setIsExpanded] = useState(level === 0);
   const [showDescription, setShowDescription] = useState(false);
@@ -219,16 +218,19 @@ function AttributeItem({
               })
             }
             className="h-9 min-w-[140px] flex-1 font-mono text-sm"
+            disabled={readOnly}
           />
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-9 shrink-0 px-3 text-xs"
-            onClick={() => setShowDescription(!showDescription)}
-          >
-            {showDescription ? "Hide" : "Desc"}
-          </Button>
+          {!readOnly && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-9 shrink-0 px-3 text-xs"
+              onClick={() => setShowDescription(!showDescription)}
+            >
+              {showDescription ? "Hide" : "Desc"}
+            </Button>
+          )}
           <Select
             value={attribute.type}
             onValueChange={(value) => {
@@ -244,6 +246,7 @@ function AttributeItem({
                     : undefined,
               });
             }}
+            disabled={readOnly}
           >
             <SelectTrigger className="h-9 w-[150px] shrink-0 text-sm">
               <SelectValue />
@@ -255,18 +258,20 @@ function AttributeItem({
               <SelectItem value="arrayOfRecords">Array[Record]</SelectItem>
             </SelectContent>
           </Select>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9 shrink-0 text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-500"
-            onClick={() => onRemove(attribute.id)}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          {!readOnly && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 shrink-0 text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-500"
+              onClick={() => onRemove(attribute.id)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
-      {showDescription && (
+      {(showDescription || (readOnly && attribute.description)) && (
         <div className="mt-3 ml-10">
           <Textarea
             placeholder="Optional description..."
@@ -278,6 +283,7 @@ function AttributeItem({
             }
             rows={2}
             className="resize-none text-sm"
+            disabled={readOnly}
           />
         </div>
       )}
@@ -287,16 +293,18 @@ function AttributeItem({
             <span className="font-medium text-muted-foreground text-xs">
               {attribute.type === "record" ? "Nested Fields" : "Record Fields"}
             </span>
-            <Button
-              type="button"
-              onClick={() => onAddChild(attribute.id)}
-              size="sm"
-              variant="outline"
-              className="h-7 px-2.5 text-xs"
-            >
-              <Plus className="mr-1.5 h-3.5 w-3.5" />
-              Add Field
-            </Button>
+            {!readOnly && (
+              <Button
+                type="button"
+                onClick={() => onAddChild(attribute.id)}
+                size="sm"
+                variant="outline"
+                className="h-7 px-2.5 text-xs"
+              >
+                <Plus className="mr-1.5 h-3.5 w-3.5" />
+                Add Field
+              </Button>
+            )}
           </div>
           {attribute.children && attribute.children.length > 0 ? (
             <div className="space-y-2">
@@ -313,6 +321,7 @@ function AttributeItem({
                   onAddChild={onAddChild}
                   onRemoveChild={onRemoveChild}
                   onUpdateChild={onUpdateChild}
+                  readOnly={readOnly}
                 />
               ))}
             </div>
@@ -330,24 +339,40 @@ function AttributeItem({
 export function AttributeBuilder({
   attributes,
   onAttributesChange,
+  readOnly = false,
 }: AttributeBuilderProps) {
   const addAttribute = () => {
+    if (readOnly) {
+      return;
+    }
     onAttributesChange([...attributes, createAttribute()]);
   };
 
   const removeAttribute = (id: string) => {
+    if (readOnly) {
+      return;
+    }
     onAttributesChange(removeAttributeFromTree(attributes, id));
   };
 
   const updateAttribute = (id: string, updates: Partial<Attribute>) => {
+    if (readOnly) {
+      return;
+    }
     onAttributesChange(updateAttributeInTree(attributes, id, updates));
   };
 
   const addChildAttribute = (parentId: string) => {
+    if (readOnly) {
+      return;
+    }
     onAttributesChange(addChildAttributeToTree(attributes, parentId));
   };
 
   const removeChildAttribute = (parentId: string, childId: string) => {
+    if (readOnly) {
+      return;
+    }
     onAttributesChange(
       removeChildAttributeFromTree(attributes, parentId, childId),
     );
@@ -358,6 +383,9 @@ export function AttributeBuilder({
     childId: string,
     updates: Partial<Attribute>,
   ) => {
+    if (readOnly) {
+      return;
+    }
     onAttributesChange(
       updateChildAttributeInTree(attributes, parentId, childId, updates),
     );
@@ -375,15 +403,17 @@ export function AttributeBuilder({
               </Badge>
             )}
           </div>
-          <Button
-            onClick={addAttribute}
-            size="sm"
-            variant="outline"
-            className="h-9"
-          >
-            <Plus className="mr-1.5 h-4 w-4" />
-            Add Attribute
-          </Button>
+          {!readOnly && (
+            <Button
+              onClick={addAttribute}
+              size="sm"
+              variant="outline"
+              className="h-9"
+            >
+              <Plus className="mr-1.5 h-4 w-4" />
+              Add Attribute
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -409,6 +439,7 @@ export function AttributeBuilder({
                 onAddChild={addChildAttribute}
                 onRemoveChild={removeChildAttribute}
                 onUpdateChild={updateChildAttribute}
+                readOnly={readOnly}
               />
             ))}
           </div>

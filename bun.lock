@@ -25,7 +25,9 @@
         "@aws-sdk/client-textract": "^3.965.0",
         "@aws-sdk/credential-providers": "^3.965.0",
         "@extractify/auth": "workspace:*",
+        "@extractify/db": "workspace:*",
         "@extractify/env": "workspace:*",
+        "@extractify/shared": "workspace:*",
         "@radix-ui/react-avatar": "^1.1.11",
         "@radix-ui/react-dropdown-menu": "^2.1.16",
         "@radix-ui/react-label": "^2.1.8",
@@ -97,6 +99,7 @@
       "name": "@extractify/db",
       "dependencies": {
         "@extractify/env": "workspace:*",
+        "@extractify/shared": "workspace:*",
         "dotenv": "catalog:",
         "drizzle-orm": "^0.45.1",
         "pg": "^8.17.1",
@@ -120,6 +123,17 @@
       "devDependencies": {
         "@extractify/config": "workspace:*",
         "@types/node": "catalog:",
+        "typescript": "catalog:",
+      },
+    },
+    "packages/shared": {
+      "name": "@extractify/shared",
+      "version": "0.0.0",
+      "dependencies": {
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@extractify/config": "workspace:*",
         "typescript": "catalog:",
       },
     },
@@ -379,6 +393,8 @@
     "@extractify/db": ["@extractify/db@workspace:packages/db"],
 
     "@extractify/env": ["@extractify/env@workspace:packages/env"],
+
+    "@extractify/shared": ["@extractify/shared@workspace:packages/shared"],
 
     "@floating-ui/core": ["@floating-ui/core@1.7.4", "", { "dependencies": { "@floating-ui/utils": "^0.2.10" } }, "sha512-C3HlIdsBxszvm5McXlB8PeOEWfBhcGBTZGkGlWc2U0KFY5IwG5OQEuQ8rq52DZmcHDlPLd+YFBK+cZcytwIFWg=="],
 

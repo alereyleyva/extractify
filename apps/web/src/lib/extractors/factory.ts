@@ -1,6 +1,10 @@
 import { ImageExtractionStrategy } from "./image-extractor";
 import { PDFExtractionStrategy } from "./pdf-extractor";
-import type { ExtractionStrategy } from "./types";
+import {
+  type ExtractionStrategy,
+  SUPPORTED_IMAGE_TYPES,
+  SUPPORTED_PDF_TYPES,
+} from "./types";
 
 export class ExtractionStrategyFactory {
   private strategies: ExtractionStrategy[];
@@ -27,10 +31,10 @@ export class ExtractionStrategyFactory {
   getSupportedTypes(): string[] {
     return this.strategies.flatMap((strategy) => {
       if (strategy instanceof PDFExtractionStrategy) {
-        return ["application/pdf"];
+        return [...SUPPORTED_PDF_TYPES];
       }
       if (strategy instanceof ImageExtractionStrategy) {
-        return ["image/jpeg", "image/png", "image/jpg"];
+        return [...SUPPORTED_IMAGE_TYPES];
       }
       return [];
     });

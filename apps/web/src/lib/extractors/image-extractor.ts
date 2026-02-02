@@ -5,7 +5,7 @@ import {
 } from "@aws-sdk/client-textract";
 import { fromNodeProviderChain } from "@aws-sdk/credential-providers";
 import { env } from "@extractify/env/server";
-import type { ExtractionStrategy } from "./types";
+import { type ExtractionStrategy, SUPPORTED_IMAGE_TYPES } from "./types";
 
 export class ImageExtractionStrategy implements ExtractionStrategy {
   private textractClient: TextractClient;
@@ -18,10 +18,8 @@ export class ImageExtractionStrategy implements ExtractionStrategy {
   }
 
   supports(fileType: string): boolean {
-    return (
-      fileType === "image/jpeg" ||
-      fileType === "image/png" ||
-      fileType === "image/jpg"
+    return SUPPORTED_IMAGE_TYPES.includes(
+      fileType as (typeof SUPPORTED_IMAGE_TYPES)[number],
     );
   }
 

@@ -12,18 +12,20 @@ import { z } from "zod";
 import { ExtractionStrategyFactory } from "@/lib/extractors/factory";
 import { requireUserId } from "@/lib/server/require-user-id";
 
-const ExtractDataSchema = z.object({
+const FileInputSchema = z.object({
   fileData: z.instanceof(ArrayBuffer),
   fileName: z.string().min(1),
   fileType: z.string().min(1),
+});
+
+const ExtractDataSchema = z.object({
+  files: z.array(FileInputSchema).min(1).max(10),
   attributes: AttributeListSchema,
 });
 
 const ExtractDataFromModelSchema = z.object({
   modelId: z.string().min(1),
-  fileData: z.instanceof(ArrayBuffer),
-  fileName: z.string().min(1),
-  fileType: z.string().min(1),
+  files: z.array(FileInputSchema).min(1).max(10),
 });
 
 function createNestedFieldSchema(
@@ -147,6 +149,10 @@ function buildExtractionPrompt(
 Be precise and only extract information that is explicitly stated in the document.
 If a field is not found, use null for that field.
 
+The text may contain multiple documents. Each document begins with a line like:
+--- Document: filename.pdf ---
+Use these separators to understand which content belongs to which document.
+
 For each attribute, provide:
 - value: The extracted value (or null if not found). The format depends on the attribute type:
   * string: A single string value
@@ -174,25 +180,32 @@ function getBedrockModel() {
     credentialProvider: fromNodeProviderChain(),
   });
 
-  return bedrock("qwen.qwen3-32b-v1:0");
+  return bedrock("eu.amazon.nova-pro-v1:0");
 }
 
 async function runExtraction(input: {
-  fileData: ArrayBuffer;
-  fileName: string;
-  fileType: string;
+  files: z.infer<typeof FileInputSchema>[];
   attributes: z.infer<typeof AttributeSchema>[];
 }) {
   const factory = new ExtractionStrategyFactory();
-  const strategy = factory.getStrategy(input.fileType);
-  const documentText = await strategy.extractText(
-    input.fileData,
-    input.fileName,
-  );
+  const documentSections: string[] = [];
+
+  for (const file of input.files) {
+    const strategy = factory.getStrategy(file.fileType);
+    const documentText = await strategy.extractText(
+      file.fileData,
+      file.fileName,
+    );
+    documentSections.push(
+      `--- Document: ${file.fileName} ---\n${documentText}`,
+    );
+  }
+
+  const combinedText = documentSections.join("\n\n");
 
   const schema = createAttributeSchema(input.attributes);
   const bedrockModel = getBedrockModel();
-  const prompt = buildExtractionPrompt(documentText, input.attributes);
+  const prompt = buildExtractionPrompt(combinedText, input.attributes);
 
   const { output, totalUsage } = await generateText({
     model: bedrockModel,
@@ -229,9 +242,7 @@ export const extractDataFromModel = createServerFn({ method: "POST" })
     }
 
     return runExtraction({
-      fileData: data.fileData,
-      fileName: data.fileName,
-      fileType: data.fileType,
+      files: data.files,
       attributes: activeVersion.attributes,
     });
   });

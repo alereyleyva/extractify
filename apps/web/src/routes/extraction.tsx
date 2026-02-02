@@ -70,7 +70,7 @@ function ExtractionPage() {
   );
   const [currentModelVersion, setCurrentModelVersion] =
     useState<typeof activeModelVersion>(activeModelVersion);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [attributes, setAttributes] = useState<Attribute[]>(
     activeModelVersion?.attributes ?? [],
   );
@@ -120,23 +120,30 @@ function ExtractionPage() {
     loadModel();
   }, [selectedModelId, currentModelVersion, getActiveModelVersionFn]);
 
-  const handleFileSelect = (file: File) => {
-    setSelectedFile(file);
+  const handleFileSelect = (files: File[]) => {
+    setSelectedFiles(files);
     setResults(null);
     setUsage(null);
     setCurrentStep("upload");
   };
 
-  const handleFileRemove = () => {
-    setSelectedFile(null);
+  const handleFileRemove = (index: number) => {
+    setSelectedFiles((prev) => prev.filter((_, current) => current !== index));
+    setResults(null);
+    setUsage(null);
+    setCurrentStep("upload");
+  };
+
+  const handleFileRemoveAll = () => {
+    setSelectedFiles([]);
     setResults(null);
     setUsage(null);
     setCurrentStep("upload");
   };
 
   const handleExtract = async () => {
-    if (!selectedFile || !selectedModelId) {
-      toast.error("Please upload a document and select a model");
+    if (selectedFiles.length === 0 || !selectedModelId) {
+      toast.error("Please upload documents and select a model");
       return;
     }
     if (!areAttributesValid(attributes)) {
@@ -149,14 +156,16 @@ function ExtractionPage() {
     setUsage(null);
 
     try {
-      const fileType =
-        selectedFile.type === "image/jpg" ? "image/jpeg" : selectedFile.type;
       const result = await extractDataFn({
         data: {
           modelId: selectedModelId,
-          fileData: await selectedFile.arrayBuffer(),
-          fileName: selectedFile.name,
-          fileType,
+          files: await Promise.all(
+            selectedFiles.map(async (file) => ({
+              fileData: await file.arrayBuffer(),
+              fileName: file.name,
+              fileType: file.type === "image/jpg" ? "image/jpeg" : file.type,
+            })),
+          ),
         },
       });
 
@@ -187,7 +196,7 @@ function ExtractionPage() {
   };
 
   const handleReset = () => {
-    setSelectedFile(null);
+    setSelectedFiles([]);
     setAttributes(currentModelVersion?.attributes ?? []);
     setResults(null);
     setUsage(null);
@@ -195,7 +204,7 @@ function ExtractionPage() {
   };
 
   const canExtract =
-    selectedFile &&
+    selectedFiles.length > 0 &&
     selectedModelId &&
     areAttributesValid(attributes) &&
     !isExtracting;
@@ -259,14 +268,15 @@ function ExtractionPage() {
         <div className="relative min-h-[600px]">
           <StepSection active={currentStep === "upload"}>
             <UploadStep
-              selectedFile={selectedFile}
+              selectedFiles={selectedFiles}
               onFileSelect={handleFileSelect}
-              onRemove={handleFileRemove}
+              onRemoveFile={handleFileRemove}
+              onRemoveAll={handleFileRemoveAll}
               onContinue={() => setCurrentStep("attributes")}
             />
           </StepSection>
 
-          {selectedFile && (
+          {selectedFiles.length > 0 && (
             <StepSection active={currentStep === "attributes"}>
               <AttributesStep
                 attributes={attributes}
@@ -286,7 +296,7 @@ function ExtractionPage() {
             </StepSection>
           )}
 
-          {selectedFile && areAttributesValid(attributes) && (
+          {selectedFiles.length > 0 && areAttributesValid(attributes) && (
             <StepSection active={currentStep === "extract"}>
               <ExtractStep
                 canExtract={!!canExtract}

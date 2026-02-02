@@ -84,7 +84,7 @@
 | SRC-DOC-002 | [ ] | As a user, I can upload a DOCX document so that I can extract data from it | P0 |
 | SRC-DOC-003 | [ ] | As a user, I can upload a TXT file so that I can extract data from plain text | P0 |
 | SRC-DOC-004 | [ ] | As a user, I can see a preview of uploaded documents so that I can verify the content | P1 |
-| SRC-DOC-005 | [ ] | As a user, I can upload multiple documents at once (batch) so that I can process many files | P1 |
+| SRC-DOC-005 | [x] | As a user, I can upload multiple documents at once (batch) so that I can process many files | P1 |
 | SRC-DOC-006 | [x] | As a user, I can upload documents via drag-and-drop so that the experience is intuitive | P1 |
 | SRC-DOC-007 | [ ] | As a user, I can see the text extraction result before running the LLM so that I can verify parsing | P2 |
 | SRC-DOC-008 | [ ] | As a user, I can upload Markdown files so that I can extract from formatted text | P2 |
@@ -98,8 +98,8 @@
 | ID | Done | User Story | Priority |
 |----|------|------------|----------|
 | SRC-IMG-001 | [x] | As a user, I can upload an image (PNG, JPG, WebP) so that I can extract data from it | P0 |
-| SRC-IMG-002 | [ ] | As a user, I can upload multiple images at once so that I can batch process | P1 |
-| SRC-IMG-003 | [x] | As a user, I can see image previews before extraction so that I verify the upload | P1 |
+| SRC-IMG-002 | [x] | As a user, I can upload multiple images at once so that I can batch process | P1 |
+| SRC-IMG-003 | [ ] | As a user, I can see image previews before extraction so that I verify the upload | P1 |
 | SRC-IMG-004 | [ ] | As a user, I can crop/rotate images before extraction so that I focus on relevant areas | P2 |
 | SRC-IMG-005 | [x] | As a user, I can extract text via OCR from images so that I process scanned documents | P1 |
 | SRC-IMG-006 | [x] | As a user, I can use vision models to understand image content so that I extract visual data | P1 |

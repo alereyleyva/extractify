@@ -3,14 +3,16 @@ import { PDFUpload } from "@/components/PDFUpload";
 import { Button } from "@/components/ui/button";
 
 export function UploadStep({
-  selectedFile,
+  selectedFiles,
   onFileSelect,
-  onRemove,
+  onRemoveFile,
+  onRemoveAll,
   onContinue,
 }: {
-  selectedFile: File | null;
-  onFileSelect: (file: File) => void;
-  onRemove: () => void;
+  selectedFiles: File[];
+  onFileSelect: (files: File[]) => void;
+  onRemoveFile: (index: number) => void;
+  onRemoveAll: () => void;
   onContinue: () => void;
 }) {
   return (
@@ -22,19 +24,20 @@ export function UploadStep({
           </span>
         </h2>
         <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-          Select a PDF or image file to extract data from
+          Upload up to 10 PDF or image files to extract data from
         </p>
       </div>
       <div className="flex justify-center">
         <div className="w-full max-w-2xl">
           <PDFUpload
             onFileSelect={onFileSelect}
-            onRemove={onRemove}
-            selectedFile={selectedFile}
+            onRemoveFile={onRemoveFile}
+            onRemoveAll={onRemoveAll}
+            selectedFiles={selectedFiles}
           />
         </div>
       </div>
-      {selectedFile && (
+      {selectedFiles.length > 0 && (
         <div className="mt-8 flex justify-center">
           <Button onClick={onContinue}>
             Continue to Attributes

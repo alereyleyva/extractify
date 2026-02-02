@@ -36,7 +36,8 @@ function updateAttributeInTree(
       const updated = { ...attr, ...updates };
       if (
         updates.type !== undefined &&
-        (updates.type === "string" || updates.type === "array")
+        updates.type !== "record" &&
+        updates.type !== "arrayOfRecords"
       ) {
         return { ...updated, children: undefined };
       }
@@ -253,6 +254,9 @@ function AttributeItem({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="string">String</SelectItem>
+              <SelectItem value="number">Number</SelectItem>
+              <SelectItem value="boolean">Boolean</SelectItem>
+              <SelectItem value="date">Date</SelectItem>
               <SelectItem value="array">Array</SelectItem>
               <SelectItem value="record">Record</SelectItem>
               <SelectItem value="arrayOfRecords">Array[Record]</SelectItem>

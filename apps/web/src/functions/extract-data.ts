@@ -42,6 +42,18 @@ function createNestedFieldSchema(
     return z.array(z.string()).nullable();
   }
 
+  if (attr.type === "number") {
+    return z.number().nullable();
+  }
+
+  if (attr.type === "boolean") {
+    return z.boolean().nullable();
+  }
+
+  if (attr.type === "date") {
+    return z.string().nullable();
+  }
+
   if (attr.type === "record") {
     if (!attr.children || attr.children.length === 0) {
       return z.record(z.string(), z.string()).nullable();
@@ -81,11 +93,17 @@ function createFieldSchema(
         `The extracted value for ${description}. Format: ${
           attr.type === "array"
             ? "array of strings"
-            : attr.type === "record"
-              ? "object with nested fields"
-              : attr.type === "arrayOfRecords"
-                ? "array of objects with nested fields"
-                : "string"
+            : attr.type === "number"
+              ? "number"
+              : attr.type === "boolean"
+                ? "boolean"
+                : attr.type === "date"
+                  ? "date string (YYYY-MM-DD)"
+                  : attr.type === "record"
+                    ? "object with nested fields"
+                    : attr.type === "arrayOfRecords"
+                      ? "array of objects with nested fields"
+                      : "string"
         }`,
       ),
       confidence: z
@@ -122,6 +140,12 @@ function buildAttributeDescription(
 
   if (attr.type === "array") {
     result += " - Extract as an array of string values";
+  } else if (attr.type === "number") {
+    result += " - Extract as a number";
+  } else if (attr.type === "boolean") {
+    result += " - Extract as a boolean (true/false)";
+  } else if (attr.type === "date") {
+    result += " - Extract as a date string in YYYY-MM-DD format";
   } else if (attr.type === "record") {
     result += " - Extract as an object with the following nested fields:";
     if (attr.children && attr.children.length > 0) {
@@ -163,6 +187,9 @@ Use these separators to understand which content belongs to which document.
 For each attribute, provide:
 - value: The extracted value (or null if not found). The format depends on the attribute type:
   * string: A single string value
+  * number: A numeric value
+  * boolean: true or false
+  * date: A date string in YYYY-MM-DD format
   * array: An array of string values (e.g., ["item1", "item2"])
   * record: An object with nested fields as defined
   * arrayOfRecords: An array of objects, each with the defined nested fields

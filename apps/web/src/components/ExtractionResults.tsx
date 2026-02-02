@@ -36,7 +36,7 @@ function formatKey(key: string): string {
 }
 
 type AttributeResult = {
-  value: string | null;
+  value: string | number | boolean | null;
   confidence: number;
 };
 

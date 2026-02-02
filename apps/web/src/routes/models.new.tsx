@@ -79,7 +79,7 @@ function ModelCreatePage() {
     <div className="min-h-screen bg-background pt-20 pb-16">
       <div className="container mx-auto max-w-5xl px-6">
         <div className="mb-8 flex items-center justify-between gap-4">
-          <Button asChild size="sm" variant="outline">
+          <Button asChild size="sm" variant="ghost">
             <Link to="/models">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to models
@@ -87,12 +87,12 @@ function ModelCreatePage() {
           </Button>
         </div>
 
-        <Card className="border">
-          <CardHeader>
+        <Card className="border-0 bg-card/40 shadow-sm ring-1 ring-border/40">
+          <CardHeader className="border-border/40 border-b">
             <CardTitle className="text-2xl">Create Model</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-5">
-            <div className="space-y-3">
+          <CardContent className="space-y-6 pt-6">
+            <div className="space-y-4">
               <Input
                 placeholder="Model name"
                 value={name}

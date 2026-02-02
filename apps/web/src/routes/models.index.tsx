@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, BookOpen, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { formatDate } from "@/lib/date";
 import { fetchModels } from "@/lib/models-queries";
 import type { ModelSummary } from "@/lib/models-types";
@@ -24,9 +23,9 @@ function ModelsPage() {
   return (
     <div className="min-h-screen bg-background pt-20 pb-16">
       <div className="container mx-auto max-w-6xl px-6">
-        <div className="mb-10 flex flex-wrap items-center justify-between gap-4">
+        <div className="mb-12 flex flex-wrap items-center justify-between gap-6">
           <div>
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-border/60 bg-muted/40 px-3 py-1 font-medium text-muted-foreground text-xs">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-border/40 bg-muted/50 px-3 py-1 font-medium text-muted-foreground text-xs">
               <BookOpen className="h-3.5 w-3.5" />
               Model Library
             </div>
@@ -47,58 +46,69 @@ function ModelsPage() {
         </div>
 
         {models.length === 0 ? (
-          <Card className="border">
-            <CardContent className="py-16 text-center">
-              <p className="font-medium">No models yet</p>
-              <p className="mt-2 text-muted-foreground text-sm">
-                Create your first schema to reuse across extractions.
-              </p>
-              <Button asChild className="mt-6">
-                <Link to="/models/new">Create model</Link>
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="rounded-lg bg-card/40 p-10 text-center shadow-sm ring-1 ring-border/40">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+              <div className="h-8 w-8 rounded-full bg-primary/20" />
+            </div>
+            <p className="font-medium text-lg">No models yet</p>
+            <p className="mt-2 text-muted-foreground text-sm">
+              Create your first schema to reuse across extractions.
+            </p>
+            <Button asChild className="mt-6">
+              <Link to="/models/new">Create model</Link>
+            </Button>
+          </div>
         ) : (
-          <div className="space-y-4">
-            {models.map((model) => (
-              <Card key={model.id} className="border">
-                <CardContent className="flex flex-col gap-4 p-6">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <h3 className="font-semibold text-lg">{model.name}</h3>
-                      <p className="mt-1 text-muted-foreground text-sm">
-                        {model.description ||
-                          "No description provided for this model."}
-                      </p>
-                    </div>
-                    <Button asChild size="sm" variant="outline">
-                      <Link
-                        to="/models/$modelId"
-                        params={{ modelId: model.id }}
-                      >
-                        View
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Link>
-                    </Button>
+          <div className="overflow-hidden rounded-lg bg-card/40 shadow-sm ring-1 ring-border/40">
+            {models.map((model, index) => (
+              <div
+                key={model.id}
+                className={`flex flex-col gap-4 px-6 py-5 transition-colors duration-200 hover:bg-muted/40 ${
+                  index === models.length - 1 ? "" : "border-border/40 border-b"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h3 className="font-semibold text-foreground text-lg">
+                      {model.name}
+                    </h3>
+                    <p className="mt-1 text-muted-foreground text-sm">
+                      {model.description ||
+                        "No description provided for this model."}
+                    </p>
                   </div>
-                  <div className="flex flex-wrap gap-3 text-muted-foreground text-xs">
-                    <span className="rounded-full border border-border/60 px-2.5 py-1">
-                      Active v{model.activeVersion?.versionNumber ?? "-"}
+                  <Button
+                    asChild
+                    size="icon"
+                    variant="ghost"
+                    className="h-9 w-9 shrink-0"
+                  >
+                    <Link
+                      to="/models/$modelId"
+                      params={{ modelId: model.id }}
+                      aria-label={`View ${model.name}`}
+                    >
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2 text-muted-foreground text-xs">
+                  <span className="rounded-full bg-muted/70 px-2.5 py-1 font-medium">
+                    Active v{model.activeVersion?.versionNumber ?? "-"}
+                  </span>
+                  <span className="rounded-full bg-muted/70 px-2.5 py-1 font-medium">
+                    Latest v{model.latestVersionNumber}
+                  </span>
+                  <span className="rounded-full bg-muted/70 px-2.5 py-1 font-medium">
+                    {model.versionCount} versions
+                  </span>
+                  {model.updatedAt && (
+                    <span className="rounded-full bg-muted/70 px-2.5 py-1 font-medium">
+                      Updated {formatDate(model.updatedAt)}
                     </span>
-                    <span className="rounded-full border border-border/60 px-2.5 py-1">
-                      Latest v{model.latestVersionNumber}
-                    </span>
-                    <span className="rounded-full border border-border/60 px-2.5 py-1">
-                      {model.versionCount} versions
-                    </span>
-                    {model.updatedAt && (
-                      <span className="rounded-full border border-border/60 px-2.5 py-1">
-                        Updated {formatDate(model.updatedAt)}
-                      </span>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+                  )}
+                </div>
+              </div>
             ))}
           </div>
         )}

@@ -111,7 +111,7 @@ function VersionDetailPage() {
     return (
       <div className="min-h-screen bg-background pt-24 pb-16">
         <div className="container mx-auto max-w-5xl px-6">
-          <Card className="border">
+          <Card className="border-0 bg-card/40 shadow-sm ring-1 ring-border/40">
             <CardContent className="py-16 text-center">
               <p className="font-medium">Version not found</p>
               <Button asChild className="mt-4">
@@ -130,28 +130,28 @@ function VersionDetailPage() {
     <div className="min-h-screen bg-background pt-20 pb-16">
       <div className="container mx-auto max-w-5xl px-6">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <Button asChild size="sm" variant="outline">
+          <Button asChild size="sm" variant="ghost">
             <Link to="/models/$modelId" params={{ modelId }}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to model
             </Link>
           </Button>
           {!version.isActive && (
-            <Button variant="outline" onClick={handleSetActive}>
+            <Button variant="ghost" onClick={handleSetActive}>
               <Check className="mr-2 h-4 w-4" />
               Set active
             </Button>
           )}
         </div>
 
-        <Card className="border">
-          <CardHeader>
+        <Card className="border-0 bg-card/40 shadow-sm ring-1 ring-border/40">
+          <CardHeader className="border-border/40 border-b">
             <CardTitle className="text-2xl">
               Edit v{version.versionNumber}
             </CardTitle>
             <p className="text-muted-foreground text-sm">{model.name}</p>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6 pt-6">
             <Textarea
               placeholder="Changelog"
               value={changelog}

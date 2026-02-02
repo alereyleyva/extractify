@@ -182,10 +182,10 @@ function AttributeItem({
 
   return (
     <div
-      className={`group relative rounded-lg border transition-all duration-200 ${
+      className={`group relative rounded-lg transition-colors duration-200 ${
         isNested
-          ? "ml-6 border-border border-l-2 border-l-primary/30 px-4 py-3"
-          : "border-border bg-card p-4 hover:border-primary/50"
+          ? "ml-6 border-border/40 border-l px-4 py-3"
+          : "bg-card/60 p-4 shadow-sm ring-1 ring-border/40 hover:bg-muted/30"
       }`}
     >
       <div className="flex items-center gap-3">
@@ -288,7 +288,7 @@ function AttributeItem({
         </div>
       )}
       {hasChildren && isExpanded && (
-        <div className="mt-3 ml-10 space-y-2.5">
+        <div className="mt-4 ml-10 space-y-3">
           <div className="mb-2 flex items-center justify-between">
             <span className="font-medium text-muted-foreground text-xs">
               {attribute.type === "record" ? "Nested Fields" : "Record Fields"}
@@ -326,7 +326,7 @@ function AttributeItem({
               ))}
             </div>
           ) : (
-            <div className="rounded border border-dashed py-4 text-center text-muted-foreground text-xs">
+            <div className="rounded-lg border border-border/40 border-dashed bg-muted/20 py-4 text-center text-muted-foreground text-xs">
               No fields defined. Click "Add Field" to define nested attributes.
             </div>
           )}
@@ -392,8 +392,8 @@ export function AttributeBuilder({
   };
 
   return (
-    <Card className="border">
-      <CardHeader className="pb-4">
+    <Card className="border-0 bg-transparent shadow-none">
+      <CardHeader className="border-border/40 border-b pb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <CardTitle className="text-lg">Attributes</CardTitle>
@@ -416,9 +416,9 @@ export function AttributeBuilder({
           )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-4 pt-4">
         {attributes.length === 0 ? (
-          <div className="rounded-lg border border-dashed py-10 text-center text-muted-foreground">
+          <div className="rounded-lg border border-border/40 border-dashed bg-muted/20 py-10 text-center text-muted-foreground">
             <Type className="mx-auto mb-2 h-7 w-7 text-muted-foreground/50" />
             <p className="mb-1 font-medium text-sm">
               No attributes defined yet
@@ -428,7 +428,7 @@ export function AttributeBuilder({
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {attributes.map((attribute, index) => (
               <AttributeItem
                 key={attribute.id}

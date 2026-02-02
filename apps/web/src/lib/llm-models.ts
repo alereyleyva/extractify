@@ -16,6 +16,10 @@ export const LLM_MODELS = [
     id: "eu.anthropic.claude-sonnet-4-5-20250929-v1:0",
     label: "Claude Sonnet 4.5",
   },
+  {
+    id: "eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+    label: "Claude Haiku 4.5",
+  },
 ] as const;
 
 export type LlmModelId = (typeof LLM_MODELS)[number]["id"];
@@ -39,5 +43,9 @@ export const MODEL_PRICING: Record<LlmModelId, ModelPricing> = {
   "eu.anthropic.claude-sonnet-4-5-20250929-v1:0": {
     inputPricePer1MTokens: 3,
     outputPricePer1MTokens: 15,
+  },
+  "eu.anthropic.claude-haiku-4-5-20251001-v1:0": {
+    inputPricePer1MTokens: 1,
+    outputPricePer1MTokens: 5,
   },
 };

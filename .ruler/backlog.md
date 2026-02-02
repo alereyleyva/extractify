@@ -125,16 +125,17 @@
 |----|------|------------|----------|
 | EXT-001 | [x] | As a user, I can run an extraction with a model + source so that I get structured data | P0 |
 | EXT-002 | [x] | As a user, I can see the extraction result in a structured view so that I can review it | P0 |
-| EXT-003 | [ ] | As a user, I can edit extraction results before saving so that I can fix errors | P1 |
-| EXT-004 | [x] | As a user, I can see extraction confidence scores so that I know data reliability | P1 |
-| EXT-005 | [ ] | As a user, I can re-run an extraction with different settings so that I improve results | P1 |
-| EXT-006 | [ ] | As a user, I can see the raw LLM response for debugging so that I troubleshoot issues | P2 |
-| EXT-007 | [ ] | As a user, I can configure extraction "temperature" so that I control creativity vs. accuracy | P2 |
-| EXT-008 | [ ] | As a user, I can choose which LLM provider to use (OpenAI, Anthropic, etc.) so that I balance cost/quality | P2 |
-| EXT-009 | [x] | As a user, I can see token usage per extraction so that I monitor costs | P1 |
-| EXT-010 | [ ] | As a user, I can set a token budget limit so that I control spending | P2 |
-| EXT-011 | [ ] | As a user, I can save extraction templates (model + source type) so that I reuse configurations | P2 |
-| EXT-012 | [ ] | As a user, I can run an extraction in "preview" mode (sample data) so that I test before full run | P2 |
+| EXT-003 | [x] | As a user, I can select a specific LLM model for extraction so that I can control performance | P0 |
+| EXT-004 | [ ] | As a user, I can edit extraction results before saving so that I can fix errors | P1 |
+| EXT-005 | [x] | As a user, I can see extraction confidence scores so that I know data reliability | P1 |
+| EXT-006 | [ ] | As a user, I can re-run an extraction with different settings so that I improve results | P1 |
+| EXT-007 | [ ] | As a user, I can see the raw LLM response for debugging so that I troubleshoot issues | P2 |
+| EXT-008 | [ ] | As a user, I can configure extraction "temperature" so that I control creativity vs. accuracy | P2 |
+| EXT-009 | [ ] | As a user, I can choose which LLM provider to use (OpenAI, Anthropic, etc.) so that I balance cost/quality | P2 |
+| EXT-010 | [x] | As a user, I can see token usage per extraction so that I monitor costs | P1 |
+| EXT-011 | [ ] | As a user, I can set a token budget limit so that I control spending | P2 |
+| EXT-012 | [ ] | As a user, I can save extraction templates (model + source type) so that I reuse configurations | P2 |
+| EXT-013 | [ ] | As a user, I can run an extraction in "preview" mode (sample data) so that I test before full run | P2 |
 
 ---
 

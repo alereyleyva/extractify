@@ -10,6 +10,11 @@ import { createServerFn } from "@tanstack/react-start";
 import { generateText, Output } from "ai";
 import { z } from "zod";
 import { ExtractionStrategyFactory } from "@/lib/extractors/factory";
+import {
+  DEFAULT_LLM_MODEL_ID,
+  LLM_MODEL_ID_LIST,
+  type LlmModelId,
+} from "@/lib/llm-models";
 import { requireUserId } from "@/lib/server/require-user-id";
 
 const FileInputSchema = z.object({
@@ -21,11 +26,13 @@ const FileInputSchema = z.object({
 const ExtractDataSchema = z.object({
   files: z.array(FileInputSchema).min(1).max(10),
   attributes: AttributeListSchema,
+  llmModelId: z.enum(LLM_MODEL_ID_LIST).default(DEFAULT_LLM_MODEL_ID),
 });
 
 const ExtractDataFromModelSchema = z.object({
   modelId: z.string().min(1),
   files: z.array(FileInputSchema).min(1).max(10),
+  llmModelId: z.enum(LLM_MODEL_ID_LIST).default(DEFAULT_LLM_MODEL_ID),
 });
 
 function createNestedFieldSchema(
@@ -174,18 +181,19 @@ Extract the following attributes:
 ${attributesList}`;
 }
 
-function getBedrockModel() {
+function getBedrockModel(modelId: LlmModelId) {
   const bedrock = createAmazonBedrock({
     region: env.AWS_REGION,
     credentialProvider: fromNodeProviderChain(),
   });
 
-  return bedrock("eu.amazon.nova-pro-v1:0");
+  return bedrock(modelId);
 }
 
 async function runExtraction(input: {
   files: z.infer<typeof FileInputSchema>[];
   attributes: z.infer<typeof AttributeSchema>[];
+  llmModelId: LlmModelId;
 }) {
   const factory = new ExtractionStrategyFactory();
   const documentSections: string[] = [];
@@ -204,7 +212,7 @@ async function runExtraction(input: {
   const combinedText = documentSections.join("\n\n");
 
   const schema = createAttributeSchema(input.attributes);
-  const bedrockModel = getBedrockModel();
+  const bedrockModel = getBedrockModel(input.llmModelId);
   const prompt = buildExtractionPrompt(combinedText, input.attributes);
 
   const { output, totalUsage } = await generateText({
@@ -218,6 +226,7 @@ async function runExtraction(input: {
   return {
     data: output as Record<string, object>,
     usage: totalUsage,
+    modelId: input.llmModelId,
   };
 }
 
@@ -225,7 +234,11 @@ export const extractData = createServerFn({ method: "POST" })
   .inputValidator(ExtractDataSchema)
   .handler(async ({ data }) => {
     await requireUserId();
-    return runExtraction(data);
+    return runExtraction({
+      files: data.files,
+      attributes: data.attributes,
+      llmModelId: data.llmModelId,
+    });
   });
 
 export const extractDataFromModel = createServerFn({ method: "POST" })
@@ -244,5 +257,6 @@ export const extractDataFromModel = createServerFn({ method: "POST" })
     return runExtraction({
       files: data.files,
       attributes: activeVersion.attributes,
+      llmModelId: data.llmModelId,
     });
   });

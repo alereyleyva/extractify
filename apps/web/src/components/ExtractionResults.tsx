@@ -18,11 +18,13 @@ import {
   formatTokenCount,
   type TokenUsage,
 } from "@/lib/cost-calculation";
+import { LLM_MODELS, type LlmModelId } from "@/lib/llm-models";
 
 type ExtractionResultsProps = {
   results: Record<string, unknown> | null;
   usage: TokenUsage | null;
   isLoading: boolean;
+  modelId: LlmModelId;
   onReset: () => void;
 };
 
@@ -427,6 +429,7 @@ export function ExtractionResults({
   results,
   usage,
   isLoading,
+  modelId,
   onReset,
 }: ExtractionResultsProps) {
   const [copied, setCopied] = useState(false);
@@ -440,7 +443,9 @@ export function ExtractionResults({
     }
   };
 
-  const costInfo = usage ? calculateCost(usage) : null;
+  const costInfo = usage ? calculateCost(usage, modelId) : null;
+  const modelLabel =
+    LLM_MODELS.find((model) => model.id === modelId)?.label ?? modelId;
 
   if (isLoading) {
     return (
@@ -487,6 +492,10 @@ export function ExtractionResults({
         {usage && costInfo && (
           <div className="mt-6 border-border border-t pt-6">
             <div className="flex flex-wrap items-center gap-6 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">LLM model:</span>
+                <span className="font-medium">{modelLabel}</span>
+              </div>
               <div className="flex items-center gap-2">
                 <span className="text-muted-foreground">Input tokens:</span>
                 <span className="font-medium">

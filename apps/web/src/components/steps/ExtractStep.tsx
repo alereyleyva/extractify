@@ -1,16 +1,30 @@
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { LlmModelId } from "@/lib/llm-models";
 
 export function ExtractStep({
   canExtract,
   isExtracting,
   onBack,
   onExtract,
+  llmModels,
+  selectedLlmModelId,
+  onLlmModelChange,
 }: {
   canExtract: boolean;
   isExtracting: boolean;
   onBack: () => void;
   onExtract: () => void;
+  llmModels: ReadonlyArray<{ id: LlmModelId; label: string }>;
+  selectedLlmModelId: LlmModelId;
+  onLlmModelChange: (modelId: LlmModelId) => void;
 }) {
   return (
     <div className="flex flex-col items-center text-center">
@@ -22,6 +36,28 @@ export function ExtractStep({
       <p className="mb-12 max-w-2xl text-lg text-muted-foreground">
         Click below to start the extraction process
       </p>
+      <div className="mb-10 w-full max-w-md rounded-xl border border-border/60 bg-card/70 p-4 text-left">
+        <p className="font-medium text-sm">LLM model</p>
+        <p className="mb-3 text-muted-foreground text-xs">
+          Select the Bedrock model used for extraction
+        </p>
+        <Select
+          value={selectedLlmModelId}
+          onValueChange={(value) => onLlmModelChange(value as LlmModelId)}
+          disabled={isExtracting}
+        >
+          <SelectTrigger className="h-9 w-full">
+            <SelectValue placeholder="Select model" />
+          </SelectTrigger>
+          <SelectContent>
+            {llmModels.map((model) => (
+              <SelectItem key={model.id} value={model.id}>
+                {model.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
       <div className="flex items-center justify-center gap-3">
         <Button variant="outline" onClick={onBack}>
           Back

@@ -1,10 +1,12 @@
 import { ExtractionResults } from "@/components/ExtractionResults";
 import { Button } from "@/components/ui/button";
+import type { LlmModelId } from "@/lib/llm-models";
 
 export function ResultsStep({
   results,
   usage,
   isLoading,
+  modelId,
   onBack,
   onRetry,
   onRestart,
@@ -16,6 +18,7 @@ export function ResultsStep({
     totalTokens: number;
   } | null;
   isLoading: boolean;
+  modelId: LlmModelId;
   onBack: () => void;
   onRetry: () => void;
   onRestart: () => void;
@@ -37,6 +40,7 @@ export function ResultsStep({
           results={results}
           usage={usage}
           isLoading={isLoading}
+          modelId={modelId}
           onReset={onRestart}
         />
         <div className="mt-8 flex justify-center gap-3">

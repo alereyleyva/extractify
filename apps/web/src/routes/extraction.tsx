@@ -14,6 +14,11 @@ import { UploadStep } from "@/components/steps/UploadStep";
 import { extractDataFromModel } from "@/functions/extract-data";
 import { getActiveModelVersion } from "@/functions/models";
 import { getErrorMessage } from "@/lib/error-handling";
+import {
+  DEFAULT_LLM_MODEL_ID,
+  LLM_MODELS,
+  type LlmModelId,
+} from "@/lib/llm-models";
 import { fetchActiveModelVersion, fetchModels } from "@/lib/models-queries";
 import { requireUser } from "@/lib/route-guards";
 import { areAttributesValid } from "@/lib/validation";
@@ -81,6 +86,10 @@ function ExtractionPage() {
     outputTokens: number;
     totalTokens: number;
   } | null>(null);
+  const [selectedLlmModelId, setSelectedLlmModelId] =
+    useState<LlmModelId>(DEFAULT_LLM_MODEL_ID);
+  const [lastLlmModelId, setLastLlmModelId] =
+    useState<LlmModelId>(DEFAULT_LLM_MODEL_ID);
   const [currentStep, setCurrentStep] = useState<Step>("upload");
 
   const extractDataFn = useServerFn(extractDataFromModel);
@@ -159,6 +168,7 @@ function ExtractionPage() {
       const result = await extractDataFn({
         data: {
           modelId: selectedModelId,
+          llmModelId: selectedLlmModelId,
           files: await Promise.all(
             selectedFiles.map(async (file) => ({
               fileData: await file.arrayBuffer(),
@@ -171,6 +181,11 @@ function ExtractionPage() {
 
       if (result && typeof result === "object" && "data" in result) {
         setResults(result.data as Record<string, unknown>);
+        if ("modelId" in result && typeof result.modelId === "string") {
+          setLastLlmModelId(result.modelId as LlmModelId);
+        } else {
+          setLastLlmModelId(selectedLlmModelId);
+        }
         if (
           "usage" in result &&
           result.usage &&
@@ -303,6 +318,9 @@ function ExtractionPage() {
                 isExtracting={isExtracting}
                 onBack={() => setCurrentStep("attributes")}
                 onExtract={handleExtract}
+                llmModels={LLM_MODELS}
+                selectedLlmModelId={selectedLlmModelId}
+                onLlmModelChange={setSelectedLlmModelId}
               />
             </StepSection>
           )}
@@ -313,6 +331,7 @@ function ExtractionPage() {
                 results={results}
                 usage={usage}
                 isLoading={isExtracting}
+                modelId={lastLlmModelId}
                 onBack={() => setCurrentStep("attributes")}
                 onRetry={() => {
                   setCurrentStep("extract");

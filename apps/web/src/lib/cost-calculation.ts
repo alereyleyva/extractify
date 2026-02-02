@@ -1,24 +1,19 @@
+import {
+  DEFAULT_LLM_MODEL_ID,
+  type LlmModelId,
+  MODEL_PRICING,
+  type ModelPricing,
+} from "@/lib/llm-models";
+
 export type TokenUsage = {
   inputTokens: number;
   outputTokens: number;
   totalTokens: number;
 };
 
-type ModelPricing = {
-  inputPricePer1MTokens: number;
-  outputPricePer1MTokens: number;
-};
-
-const MODEL_PRICING: Record<string, ModelPricing> = {
-  "qwen.qwen3-32b-v1:0": {
-    inputPricePer1MTokens: 0.18,
-    outputPricePer1MTokens: 0.7,
-  },
-};
-
 function getModelPricing(modelId: string): ModelPricing {
   return (
-    MODEL_PRICING[modelId] || {
+    MODEL_PRICING[modelId as LlmModelId] || {
       inputPricePer1MTokens: 0.25,
       outputPricePer1MTokens: 0.25,
     }
@@ -27,7 +22,7 @@ function getModelPricing(modelId: string): ModelPricing {
 
 export function calculateCost(
   usage: TokenUsage,
-  modelId = "qwen.qwen3-32b-v1:0",
+  modelId = DEFAULT_LLM_MODEL_ID,
 ): {
   inputCost: number;
   outputCost: number;

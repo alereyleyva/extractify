@@ -1,5 +1,11 @@
 import { createAmazonBedrock } from "@ai-sdk/amazon-bedrock";
 import { fromNodeProviderChain } from "@aws-sdk/credential-providers";
+import {
+  createExtractionInputs,
+  createExtractionRun,
+  setExtractionError,
+  updateExtractionRun,
+} from "@extractify/db/extractions";
 import { getActiveModelVersionForOwner } from "@extractify/db/models";
 import { env } from "@extractify/env/server";
 import {
@@ -9,6 +15,7 @@ import {
 import { createServerFn } from "@tanstack/react-start";
 import { generateText, Output } from "ai";
 import { z } from "zod";
+import { getErrorMessage } from "@/lib/error-handling";
 import { ExtractionStrategyFactory } from "@/lib/extractors/factory";
 import {
   DEFAULT_LLM_MODEL_ID,
@@ -280,10 +287,64 @@ export const extractDataFromModel = createServerFn({ method: "POST" })
     if (!activeVersion) {
       throw new Error("Model not found");
     }
-
-    return runExtraction({
-      files: data.files,
-      attributes: activeVersion.attributes,
+    const extractionRun = await createExtractionRun({
+      ownerId,
+      modelId: activeVersion.modelId,
+      modelVersionId: activeVersion.versionId,
       llmModelId: data.llmModelId,
     });
+
+    if (!extractionRun) {
+      throw new Error("Unable to create extraction run");
+    }
+
+    await createExtractionInputs(
+      extractionRun.id,
+      data.files.map((file, index) => ({
+        fileName: file.fileName,
+        fileType: file.fileType,
+        fileSize: file.fileData.byteLength,
+        sourceOrder: index,
+      })),
+    );
+
+    try {
+      const result = await runExtraction({
+        files: data.files,
+        attributes: activeVersion.attributes,
+        llmModelId: data.llmModelId,
+      });
+
+      const usage = result.usage
+        ? {
+            inputTokens: result.usage.inputTokens ?? 0,
+            outputTokens: result.usage.outputTokens ?? 0,
+          }
+        : null;
+
+      await updateExtractionRun({
+        ownerId,
+        extractionId: extractionRun.id,
+        status: "completed",
+        result: result.data as Record<string, unknown>,
+        usage,
+        completedAt: new Date(),
+      });
+
+      return result;
+    } catch (error) {
+      await setExtractionError({
+        ownerId,
+        extractionId: extractionRun.id,
+        message: getErrorMessage(error),
+      });
+      await updateExtractionRun({
+        ownerId,
+        extractionId: extractionRun.id,
+        status: "failed",
+        completedAt: new Date(),
+      });
+
+      throw error;
+    }
   });

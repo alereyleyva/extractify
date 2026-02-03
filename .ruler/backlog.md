@@ -186,8 +186,8 @@
 
 | ID | Done | User Story | Priority |
 |----|------|------------|----------|
-| HIST-001 | [ ] | As a user, I can see a history of all extractions so that I track my work | P0 |
-| HIST-002 | [ ] | As a user, I can view details of a past extraction so that I review results | P0 |
+| HIST-001 | [x] | As a user, I can see a history of all extractions so that I track my work | P0 |
+| HIST-002 | [x] | As a user, I can view details of a past extraction so that I review results | P0 |
 | HIST-003 | [ ] | As a user, I can re-run a past extraction so that I get updated results | P1 |
 | HIST-004 | [ ] | As a user, I can delete an extraction so that I clean up old data | P1 |
 | HIST-005 | [ ] | As a user, I can filter extraction history by model, date, status so that I find specific runs | P1 |

@@ -30,6 +30,12 @@ export default function Header({ user }: HeaderProps) {
         >
           Models
         </Link>
+        <Link
+          to="/history"
+          className="rounded-full border border-border/60 px-3 py-1 text-foreground/80 text-xs transition hover:border-primary/40 hover:text-foreground"
+        >
+          History
+        </Link>
       </div>
       <UserMenu user={user} />
     </header>

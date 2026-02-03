@@ -11,6 +11,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { user } from "./auth";
+import { integrationDelivery } from "./integrations";
 import { attributeModel, attributeModelVersion } from "./models";
 
 export const extractionStatus = pgEnum("extraction_status", [
@@ -82,9 +83,7 @@ export const extractionError = pgTable(
     ownerId: text("owner_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
-    type: text("type"),
     message: text("message").notNull(),
-    details: jsonb("details").$type<Record<string, unknown> | null>(),
     occurredAt: timestamp("occurred_at").defaultNow().notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
@@ -110,6 +109,7 @@ export const extractionRunRelations = relations(
       fields: [extractionRun.modelVersionId],
       references: [attributeModelVersion.id],
     }),
+    deliveries: many(integrationDelivery),
     inputs: many(extractionInput),
     errors: many(extractionError),
   }),

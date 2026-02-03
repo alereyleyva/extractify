@@ -14,6 +14,11 @@ import { UploadStep } from "@/components/steps/UploadStep";
 import { extractDataFromModel } from "@/functions/extract-data";
 import { getActiveModelVersion } from "@/functions/models";
 import { getErrorMessage } from "@/lib/error-handling";
+import type {
+  IntegrationDeliveryResult,
+  IntegrationTarget,
+} from "@/lib/integrations/types";
+import { fetchIntegrationTargets } from "@/lib/integrations-queries";
 import {
   DEFAULT_LLM_MODEL_ID,
   LLM_MODELS,
@@ -34,15 +39,28 @@ export const Route = createFileRoute("/extraction")({
     />
   ),
   loader: async () => {
-    const models = (await fetchModels()) || [];
+    const models = ((await fetchModels()) || []) as unknown as {
+      id: string;
+      name: string;
+      activeVersion?: {
+        versionNumber: number;
+      } | null;
+    }[];
     const defaultModelId = models[0]?.id;
     const activeModelVersion = defaultModelId
       ? await fetchActiveModelVersion(defaultModelId)
       : null;
+    let integrationTargets: IntegrationTarget[] = [];
+    try {
+      integrationTargets = await fetchIntegrationTargets();
+    } catch (error) {
+      console.error("Unable to load integrations", error);
+    }
 
     return {
       models,
       activeModelVersion,
+      integrationTargets,
     };
   },
   beforeLoad: async () => {
@@ -54,22 +72,24 @@ export const Route = createFileRoute("/extraction")({
 type Step = "upload" | "attributes" | "extract" | "results";
 
 function ExtractionPage() {
-  const { models, activeModelVersion } = Route.useLoaderData() as {
-    models: {
-      id: string;
-      name: string;
-      activeVersion?: {
+  const { models, activeModelVersion, integrationTargets } =
+    Route.useLoaderData() as {
+      models: {
+        id: string;
+        name: string;
+        activeVersion?: {
+          versionNumber: number;
+        } | null;
+      }[];
+      activeModelVersion: {
+        modelId: string;
+        modelName: string;
+        versionId: string;
         versionNumber: number;
+        attributes: Attribute[];
       } | null;
-    }[];
-    activeModelVersion: {
-      modelId: string;
-      modelName: string;
-      versionId: string;
-      versionNumber: number;
-      attributes: Attribute[];
-    } | null;
-  };
+      integrationTargets: IntegrationTarget[];
+    };
   const [selectedModelId, setSelectedModelId] = useState<string | null>(
     activeModelVersion?.modelId ?? models[0]?.id ?? null,
   );
@@ -81,6 +101,9 @@ function ExtractionPage() {
   );
   const [isExtracting, setIsExtracting] = useState(false);
   const [results, setResults] = useState<Record<string, unknown> | null>(null);
+  const [integrationDeliveries, setIntegrationDeliveries] = useState<
+    IntegrationDeliveryResult[]
+  >([]);
   const [usage, setUsage] = useState<{
     inputTokens: number;
     outputTokens: number;
@@ -91,6 +114,21 @@ function ExtractionPage() {
   const [lastLlmModelId, setLastLlmModelId] =
     useState<LlmModelId>(DEFAULT_LLM_MODEL_ID);
   const [currentStep, setCurrentStep] = useState<Step>("upload");
+  const [hasTouchedIntegrations, setHasTouchedIntegrations] = useState(false);
+
+  const enabledIntegrationTargets = useMemo(
+    () => integrationTargets.filter((target) => target.enabled),
+    [integrationTargets],
+  );
+
+  const enabledIntegrationIds = useMemo(
+    () => enabledIntegrationTargets.map((target) => target.id),
+    [enabledIntegrationTargets],
+  );
+
+  const [selectedIntegrationIds, setSelectedIntegrationIds] = useState(
+    enabledIntegrationIds,
+  );
 
   const extractDataFn = useServerFn(extractDataFromModel);
   const getActiveModelVersionFn = useServerFn(getActiveModelVersion);
@@ -100,6 +138,17 @@ function ExtractionPage() {
       setTimeout(() => setCurrentStep("results"), 300);
     }
   }, [results, currentStep]);
+
+  useEffect(() => {
+    if (!hasTouchedIntegrations) {
+      setSelectedIntegrationIds(enabledIntegrationIds);
+      return;
+    }
+
+    setSelectedIntegrationIds((prev) =>
+      prev.filter((id) => enabledIntegrationIds.includes(id)),
+    );
+  }, [enabledIntegrationIds, hasTouchedIntegrations]);
 
   useEffect(() => {
     if (!selectedModelId) {
@@ -133,6 +182,7 @@ function ExtractionPage() {
     setSelectedFiles(files);
     setResults(null);
     setUsage(null);
+    setIntegrationDeliveries([]);
     setCurrentStep("upload");
   };
 
@@ -140,6 +190,7 @@ function ExtractionPage() {
     setSelectedFiles((prev) => prev.filter((_, current) => current !== index));
     setResults(null);
     setUsage(null);
+    setIntegrationDeliveries([]);
     setCurrentStep("upload");
   };
 
@@ -147,6 +198,7 @@ function ExtractionPage() {
     setSelectedFiles([]);
     setResults(null);
     setUsage(null);
+    setIntegrationDeliveries([]);
     setCurrentStep("upload");
   };
 
@@ -163,12 +215,14 @@ function ExtractionPage() {
     setIsExtracting(true);
     setResults(null);
     setUsage(null);
+    setIntegrationDeliveries([]);
 
     try {
       const result = await extractDataFn({
         data: {
           modelId: selectedModelId,
           llmModelId: selectedLlmModelId,
+          integrationTargetIds: selectedIntegrationIds,
           files: await Promise.all(
             selectedFiles.map(async (file) => ({
               fileData: await file.arrayBuffer(),
@@ -201,6 +255,14 @@ function ExtractionPage() {
           };
           setUsage(usageData);
         }
+        if (
+          "integrationDeliveries" in result &&
+          Array.isArray(result.integrationDeliveries)
+        ) {
+          setIntegrationDeliveries(
+            result.integrationDeliveries as typeof integrationDeliveries,
+          );
+        }
         toast.success("Data extracted successfully!");
       }
     } catch (error) {
@@ -215,6 +277,7 @@ function ExtractionPage() {
     setAttributes(currentModelVersion?.attributes ?? []);
     setResults(null);
     setUsage(null);
+    setIntegrationDeliveries([]);
     setCurrentStep("upload");
   };
 
@@ -321,6 +384,16 @@ function ExtractionPage() {
                 llmModels={LLM_MODELS}
                 selectedLlmModelId={selectedLlmModelId}
                 onLlmModelChange={setSelectedLlmModelId}
+                integrations={enabledIntegrationTargets}
+                selectedIntegrationIds={selectedIntegrationIds}
+                onToggleIntegration={(targetId: string) => {
+                  setHasTouchedIntegrations(true);
+                  setSelectedIntegrationIds((prev) =>
+                    prev.includes(targetId)
+                      ? prev.filter((id) => id !== targetId)
+                      : [...prev, targetId],
+                  );
+                }}
               />
             </StepSection>
           )}
@@ -332,6 +405,7 @@ function ExtractionPage() {
                 usage={usage}
                 isLoading={isExtracting}
                 modelId={lastLlmModelId}
+                integrationDeliveries={integrationDeliveries}
                 onBack={() => setCurrentStep("attributes")}
                 onRetry={() => {
                   setCurrentStep("extract");

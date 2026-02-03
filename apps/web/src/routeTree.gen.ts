@@ -10,13 +10,16 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ModelsRouteImport } from './routes/models'
+import { Route as IntegrationsRouteImport } from './routes/integrations'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as ExtractionRouteImport } from './routes/extraction'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ModelsIndexRouteImport } from './routes/models.index'
+import { Route as IntegrationsIndexRouteImport } from './routes/integrations.index'
 import { Route as HistoryIndexRouteImport } from './routes/history.index'
 import { Route as ModelsNewRouteImport } from './routes/models.new'
 import { Route as ModelsModelIdRouteImport } from './routes/models.$modelId'
+import { Route as IntegrationsNewRouteImport } from './routes/integrations.new'
 import { Route as HistoryExtractionIdRouteImport } from './routes/history.$extractionId'
 import { Route as ModelsModelIdIndexRouteImport } from './routes/models.$modelId.index'
 import { Route as ModelsModelIdEditRouteImport } from './routes/models.$modelId.edit'
@@ -27,6 +30,11 @@ import { Route as ModelsModelIdVersionsVersionIdRouteImport } from './routes/mod
 const ModelsRoute = ModelsRouteImport.update({
   id: '/models',
   path: '/models',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IntegrationsRoute = IntegrationsRouteImport.update({
+  id: '/integrations',
+  path: '/integrations',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HistoryRoute = HistoryRouteImport.update({
@@ -49,6 +57,11 @@ const ModelsIndexRoute = ModelsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => ModelsRoute,
 } as any)
+const IntegrationsIndexRoute = IntegrationsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => IntegrationsRoute,
+} as any)
 const HistoryIndexRoute = HistoryIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -63,6 +76,11 @@ const ModelsModelIdRoute = ModelsModelIdRouteImport.update({
   id: '/$modelId',
   path: '/$modelId',
   getParentRoute: () => ModelsRoute,
+} as any)
+const IntegrationsNewRoute = IntegrationsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => IntegrationsRoute,
 } as any)
 const HistoryExtractionIdRoute = HistoryExtractionIdRouteImport.update({
   id: '/$extractionId',
@@ -101,11 +119,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/extraction': typeof ExtractionRoute
   '/history': typeof HistoryRouteWithChildren
+  '/integrations': typeof IntegrationsRouteWithChildren
   '/models': typeof ModelsRouteWithChildren
   '/history/$extractionId': typeof HistoryExtractionIdRoute
+  '/integrations/new': typeof IntegrationsNewRoute
   '/models/$modelId': typeof ModelsModelIdRouteWithChildren
   '/models/new': typeof ModelsNewRoute
   '/history/': typeof HistoryIndexRoute
+  '/integrations/': typeof IntegrationsIndexRoute
   '/models/': typeof ModelsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/models/$modelId/edit': typeof ModelsModelIdEditRoute
@@ -117,8 +138,10 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/extraction': typeof ExtractionRoute
   '/history/$extractionId': typeof HistoryExtractionIdRoute
+  '/integrations/new': typeof IntegrationsNewRoute
   '/models/new': typeof ModelsNewRoute
   '/history': typeof HistoryIndexRoute
+  '/integrations': typeof IntegrationsIndexRoute
   '/models': typeof ModelsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/models/$modelId/edit': typeof ModelsModelIdEditRoute
@@ -131,11 +154,14 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/extraction': typeof ExtractionRoute
   '/history': typeof HistoryRouteWithChildren
+  '/integrations': typeof IntegrationsRouteWithChildren
   '/models': typeof ModelsRouteWithChildren
   '/history/$extractionId': typeof HistoryExtractionIdRoute
+  '/integrations/new': typeof IntegrationsNewRoute
   '/models/$modelId': typeof ModelsModelIdRouteWithChildren
   '/models/new': typeof ModelsNewRoute
   '/history/': typeof HistoryIndexRoute
+  '/integrations/': typeof IntegrationsIndexRoute
   '/models/': typeof ModelsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/models/$modelId/edit': typeof ModelsModelIdEditRoute
@@ -149,11 +175,14 @@ export interface FileRouteTypes {
     | '/'
     | '/extraction'
     | '/history'
+    | '/integrations'
     | '/models'
     | '/history/$extractionId'
+    | '/integrations/new'
     | '/models/$modelId'
     | '/models/new'
     | '/history/'
+    | '/integrations/'
     | '/models/'
     | '/api/auth/$'
     | '/models/$modelId/edit'
@@ -165,8 +194,10 @@ export interface FileRouteTypes {
     | '/'
     | '/extraction'
     | '/history/$extractionId'
+    | '/integrations/new'
     | '/models/new'
     | '/history'
+    | '/integrations'
     | '/models'
     | '/api/auth/$'
     | '/models/$modelId/edit'
@@ -178,11 +209,14 @@ export interface FileRouteTypes {
     | '/'
     | '/extraction'
     | '/history'
+    | '/integrations'
     | '/models'
     | '/history/$extractionId'
+    | '/integrations/new'
     | '/models/$modelId'
     | '/models/new'
     | '/history/'
+    | '/integrations/'
     | '/models/'
     | '/api/auth/$'
     | '/models/$modelId/edit'
@@ -195,6 +229,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ExtractionRoute: typeof ExtractionRoute
   HistoryRoute: typeof HistoryRouteWithChildren
+  IntegrationsRoute: typeof IntegrationsRouteWithChildren
   ModelsRoute: typeof ModelsRouteWithChildren
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
@@ -206,6 +241,13 @@ declare module '@tanstack/react-router' {
       path: '/models'
       fullPath: '/models'
       preLoaderRoute: typeof ModelsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/integrations': {
+      id: '/integrations'
+      path: '/integrations'
+      fullPath: '/integrations'
+      preLoaderRoute: typeof IntegrationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/history': {
@@ -236,6 +278,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ModelsIndexRouteImport
       parentRoute: typeof ModelsRoute
     }
+    '/integrations/': {
+      id: '/integrations/'
+      path: '/'
+      fullPath: '/integrations/'
+      preLoaderRoute: typeof IntegrationsIndexRouteImport
+      parentRoute: typeof IntegrationsRoute
+    }
     '/history/': {
       id: '/history/'
       path: '/'
@@ -256,6 +305,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/models/$modelId'
       preLoaderRoute: typeof ModelsModelIdRouteImport
       parentRoute: typeof ModelsRoute
+    }
+    '/integrations/new': {
+      id: '/integrations/new'
+      path: '/new'
+      fullPath: '/integrations/new'
+      preLoaderRoute: typeof IntegrationsNewRouteImport
+      parentRoute: typeof IntegrationsRoute
     }
     '/history/$extractionId': {
       id: '/history/$extractionId'
@@ -315,6 +371,20 @@ const HistoryRouteChildren: HistoryRouteChildren = {
 const HistoryRouteWithChildren =
   HistoryRoute._addFileChildren(HistoryRouteChildren)
 
+interface IntegrationsRouteChildren {
+  IntegrationsNewRoute: typeof IntegrationsNewRoute
+  IntegrationsIndexRoute: typeof IntegrationsIndexRoute
+}
+
+const IntegrationsRouteChildren: IntegrationsRouteChildren = {
+  IntegrationsNewRoute: IntegrationsNewRoute,
+  IntegrationsIndexRoute: IntegrationsIndexRoute,
+}
+
+const IntegrationsRouteWithChildren = IntegrationsRoute._addFileChildren(
+  IntegrationsRouteChildren,
+)
+
 interface ModelsModelIdRouteChildren {
   ModelsModelIdEditRoute: typeof ModelsModelIdEditRoute
   ModelsModelIdIndexRoute: typeof ModelsModelIdIndexRoute
@@ -352,6 +422,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ExtractionRoute: ExtractionRoute,
   HistoryRoute: HistoryRouteWithChildren,
+  IntegrationsRoute: IntegrationsRouteWithChildren,
   ModelsRoute: ModelsRouteWithChildren,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }

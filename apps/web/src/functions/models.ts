@@ -87,22 +87,26 @@ export const listModels = createServerFn({ method: "GET" }).handler(
   async () => {
     const ownerId = await requireUserId();
     const models = await listModelsForOwner(ownerId);
+    const safeModels = Array.isArray(models) ? models : [];
 
-    return models.map((model: ModelWithVersions) => {
-      const activeVersion = model.versions.find(
+    return safeModels.map((model: ModelWithVersions) => {
+      const versions = Array.isArray(model.versions) ? model.versions : [];
+      const activeVersion = versions.find(
         (version: ModelVersionSummary) => version.isActive,
       );
-      const latestVersionNumber = model.versions.reduce(
-        (latest: number, version: ModelVersionSummary) =>
-          Math.max(latest, version.versionNumber),
-        0,
-      );
+      const latestVersionNumber = versions.length
+        ? Math.max(
+            ...versions.map(
+              (version: ModelVersionSummary) => version.versionNumber,
+            ),
+          )
+        : 0;
 
       return {
         ...model,
         activeVersion: activeVersion || null,
         latestVersionNumber,
-        versionCount: model.versions.length,
+        versionCount: versions.length,
       };
     });
   },

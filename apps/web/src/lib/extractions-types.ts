@@ -17,6 +17,8 @@ export type ExtractionInput = {
   sourceOrder: number;
 };
 
+import type { IntegrationDeliverySummary } from "@/lib/integrations/types";
+
 export type ExtractionDetail = {
   id: string;
   status: "processing" | "completed" | "failed";
@@ -35,4 +37,5 @@ export type ExtractionDetail = {
   } | null;
   errorMessage: string | null;
   inputs: ExtractionInput[];
+  integrationDeliveries: IntegrationDeliverySummary[];
 };

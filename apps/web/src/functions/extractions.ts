@@ -4,6 +4,7 @@ import {
 } from "@extractify/db/extractions";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import type { IntegrationDeliverySummary } from "@/lib/integrations/types";
 import { requireUserId } from "@/lib/server/require-user-id";
 
 type ExtractionRunListItem = {
@@ -38,6 +39,18 @@ type ExtractionRunDetail = ExtractionRunListItem & {
     totalTokens: number;
   } | null;
   inputs: ExtractionInputItem[];
+  deliveries?:
+    | {
+        id: string;
+        targetId: string;
+        status: "pending" | "processing" | "succeeded" | "failed";
+        responseStatus?: number | null;
+        target?: {
+          name: string | null;
+          type: "webhook" | "sheets" | "postgres";
+        } | null;
+      }[]
+    | null;
   errors?:
     | {
         message: string;
@@ -63,6 +76,7 @@ type ExtractionDetailResponse = {
   } | null;
   errorMessage: string | null;
   inputs: ExtractionInputItem[];
+  integrationDeliveries: IntegrationDeliverySummary[];
 };
 
 const GetExtractionSchema = z.object({
@@ -92,42 +106,57 @@ export const listExtractions = createServerFn({ method: "GET" }).handler(
 
 export const getExtraction = createServerFn({ method: "POST" })
   .inputValidator(GetExtractionSchema)
-  .handler(async ({ data }): Promise<ExtractionDetailResponse> => {
-    const ownerId = await requireUserId();
-    const run = (await getExtractionRunForOwner(
-      ownerId,
-      data.extractionId,
-    )) as ExtractionRunDetail | null;
+  .handler(
+    async ({
+      data,
+    }: {
+      data: z.infer<typeof GetExtractionSchema>;
+    }): Promise<ExtractionDetailResponse> => {
+      const ownerId = await requireUserId();
+      const run = (await getExtractionRunForOwner(
+        ownerId,
+        data.extractionId,
+      )) as ExtractionRunDetail | null;
 
-    if (!run) {
-      throw new Error("Extraction not found");
-    }
+      if (!run) {
+        throw new Error("Extraction not found");
+      }
 
-    return {
-      id: run.id,
-      status: run.status,
-      modelId: run.modelId,
-      modelName: run.model?.name ?? "Unknown model",
-      modelVersionId: run.modelVersionId,
-      modelVersionNumber: run.modelVersion?.versionNumber ?? null,
-      llmModelId: run.llmModelId,
-      createdAt: run.createdAt,
-      completedAt: run.completedAt,
-      result: run.result as Record<string, object> | null,
-      usage: run.usage
-        ? {
-            inputTokens: run.usage.inputTokens,
-            outputTokens: run.usage.outputTokens,
-            totalTokens: run.usage.inputTokens + run.usage.outputTokens,
-          }
-        : null,
-      errorMessage: run.errors?.[0]?.message ?? null,
-      inputs: run.inputs.map((input: ExtractionInputItem) => ({
-        id: input.id,
-        fileName: input.fileName,
-        fileType: input.fileType,
-        fileSize: input.fileSize,
-        sourceOrder: input.sourceOrder,
-      })),
-    };
-  });
+      const integrationDeliveries = (run.deliveries ?? []).map((delivery) => ({
+        targetId: delivery.targetId,
+        name: delivery.target?.name ?? "Unknown target",
+        type: delivery.target?.type ?? "webhook",
+        status: delivery.status,
+        responseStatus: delivery.responseStatus ?? null,
+      }));
+
+      return {
+        id: run.id,
+        status: run.status,
+        modelId: run.modelId,
+        modelName: run.model?.name ?? "Unknown model",
+        modelVersionId: run.modelVersionId,
+        modelVersionNumber: run.modelVersion?.versionNumber ?? null,
+        llmModelId: run.llmModelId,
+        createdAt: run.createdAt,
+        completedAt: run.completedAt,
+        result: run.result as Record<string, object> | null,
+        usage: run.usage
+          ? {
+              inputTokens: run.usage.inputTokens,
+              outputTokens: run.usage.outputTokens,
+              totalTokens: run.usage.inputTokens + run.usage.outputTokens,
+            }
+          : null,
+        errorMessage: run.errors?.[0]?.message ?? null,
+        inputs: run.inputs.map((input: ExtractionInputItem) => ({
+          id: input.id,
+          fileName: input.fileName,
+          fileType: input.fileType,
+          fileSize: input.fileSize,
+          sourceOrder: input.sourceOrder,
+        })),
+        integrationDeliveries,
+      };
+    },
+  );

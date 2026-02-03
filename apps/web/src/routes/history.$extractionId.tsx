@@ -52,6 +52,21 @@ function getStatusStyles(status: ExtractionDetail["status"]) {
   return "bg-amber-500/10 text-amber-700 ring-1 ring-amber-500/20";
 }
 
+function getDeliveryStyles(
+  status: ExtractionDetail["integrationDeliveries"][number]["status"],
+) {
+  if (status === "succeeded") {
+    return "bg-emerald-500/15 text-emerald-600";
+  }
+  if (status === "failed") {
+    return "bg-rose-500/15 text-rose-600";
+  }
+  if (status === "processing") {
+    return "bg-amber-500/15 text-amber-600";
+  }
+  return "bg-muted text-muted-foreground";
+}
+
 function HistoryDetailPage() {
   const extraction = Route.useLoaderData() as ExtractionDetail;
   const navigate = useNavigate();
@@ -183,6 +198,41 @@ function HistoryDetailPage() {
                 )}
               </CardContent>
             </Card>
+
+            {extraction.integrationDeliveries.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Integrations</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {extraction.integrationDeliveries.map((delivery) => (
+                    <div
+                      key={delivery.targetId}
+                      className="flex items-center justify-between rounded-lg border border-border/60 bg-background px-3 py-2 text-sm"
+                    >
+                      <div>
+                        <p className="font-medium text-foreground">
+                          {delivery.name}
+                        </p>
+                        <p className="text-muted-foreground text-xs">
+                          {delivery.type.toUpperCase()}
+                          {delivery.responseStatus
+                            ? ` · ${delivery.responseStatus}`
+                            : ""}
+                        </p>
+                      </div>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs ${getDeliveryStyles(
+                          delivery.status,
+                        )}`}
+                      >
+                        {delivery.status}
+                      </span>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>

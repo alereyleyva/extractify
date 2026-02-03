@@ -7,6 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type { IntegrationTarget } from "@/lib/integrations/types";
 import type { LlmModelId } from "@/lib/llm-models";
 
 export function ExtractStep({
@@ -17,6 +18,9 @@ export function ExtractStep({
   llmModels,
   selectedLlmModelId,
   onLlmModelChange,
+  integrations,
+  selectedIntegrationIds,
+  onToggleIntegration,
 }: {
   canExtract: boolean;
   isExtracting: boolean;
@@ -25,6 +29,9 @@ export function ExtractStep({
   llmModels: ReadonlyArray<{ id: LlmModelId; label: string }>;
   selectedLlmModelId: LlmModelId;
   onLlmModelChange: (modelId: LlmModelId) => void;
+  integrations: IntegrationTarget[];
+  selectedIntegrationIds: string[];
+  onToggleIntegration: (targetId: string) => void;
 }) {
   return (
     <div className="flex flex-col items-center text-center">
@@ -57,6 +64,54 @@ export function ExtractStep({
             ))}
           </SelectContent>
         </Select>
+      </div>
+      <div className="mb-10 w-full max-w-md rounded-xl border border-border/60 bg-card/70 p-4 text-left">
+        <p className="font-medium text-sm">Destinations</p>
+        <p className="mb-3 text-muted-foreground text-xs">
+          Choose which integrations should receive the results.
+        </p>
+        {integrations.length === 0 ? (
+          <div className="rounded-lg border border-border/40 border-dashed bg-muted/20 px-3 py-4 text-center text-muted-foreground text-xs">
+            No enabled integrations yet.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {integrations.map((integration) => {
+              const selected = selectedIntegrationIds.includes(integration.id);
+              return (
+                <button
+                  key={integration.id}
+                  type="button"
+                  className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-sm transition ${
+                    selected
+                      ? "border-primary/60 bg-primary/10"
+                      : "border-border/60 bg-background"
+                  }`}
+                  onClick={() => onToggleIntegration(integration.id)}
+                >
+                  <div>
+                    <p className="font-medium">{integration.name}</p>
+                    <p className="text-muted-foreground text-xs">
+                      {integration.type.toUpperCase()}
+                      {integration.type === "webhook"
+                        ? ` · ${integration.config.method ?? "POST"}`
+                        : ""}
+                    </p>
+                  </div>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs ${
+                      selected
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {selected ? "Selected" : "Skip"}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
       <div className="flex items-center justify-center gap-3">
         <Button variant="outline" onClick={onBack}>

@@ -1,5 +1,6 @@
 import { ExtractionResults } from "@/components/ExtractionResults";
 import { Button } from "@/components/ui/button";
+import type { IntegrationDeliveryResult } from "@/lib/integrations/types";
 import type { LlmModelId } from "@/lib/llm-models";
 
 export function ResultsStep({
@@ -7,6 +8,7 @@ export function ResultsStep({
   usage,
   isLoading,
   modelId,
+  integrationDeliveries,
   onBack,
   onRetry,
   onRestart,
@@ -19,6 +21,7 @@ export function ResultsStep({
   } | null;
   isLoading: boolean;
   modelId: LlmModelId;
+  integrationDeliveries: IntegrationDeliveryResult[];
   onBack: () => void;
   onRetry: () => void;
   onRestart: () => void;
@@ -36,6 +39,38 @@ export function ResultsStep({
         </p>
       </div>
       <div className="mx-auto w-full max-w-6xl">
+        {integrationDeliveries.length > 0 && (
+          <div className="mb-6 rounded-xl border border-border/60 bg-card/70 p-4">
+            <p className="font-medium text-sm">Integrations</p>
+            <div className="mt-3 space-y-2">
+              {integrationDeliveries.map((delivery) => (
+                <div
+                  key={delivery.targetId}
+                  className="flex items-center justify-between rounded-lg border border-border/60 bg-background px-3 py-2 text-sm"
+                >
+                  <div>
+                    <p className="font-medium">{delivery.name}</p>
+                    <p className="text-muted-foreground text-xs">
+                      {delivery.type.toUpperCase()}
+                      {delivery.responseStatus
+                        ? ` · ${delivery.responseStatus}`
+                        : ""}
+                    </p>
+                  </div>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs ${
+                      delivery.status === "succeeded"
+                        ? "bg-emerald-500/15 text-emerald-600"
+                        : "bg-rose-500/15 text-rose-600"
+                    }`}
+                  >
+                    {delivery.status === "succeeded" ? "Delivered" : "Failed"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <ExtractionResults
           results={results}
           usage={usage}

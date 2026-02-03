@@ -5,6 +5,7 @@ import {
   extractionInput,
   extractionRun,
 } from "./schema/extractions";
+import { integrationDelivery } from "./schema/integrations";
 
 type DbTransaction = Parameters<typeof db.transaction>[0] extends (
   tx: infer T,
@@ -42,8 +43,6 @@ export type ExtractionErrorInput = {
   ownerId: string;
   extractionId: string;
   message: string;
-  type?: string | null;
-  details?: Record<string, unknown> | null;
   occurredAt?: Date;
 };
 
@@ -166,6 +165,17 @@ export async function getExtractionRunForOwner(
         orderBy: desc(extractionError.occurredAt),
         limit: 1,
       },
+      deliveries: {
+        with: {
+          target: {
+            columns: {
+              name: true,
+              type: true,
+            },
+          },
+        },
+        orderBy: asc(integrationDelivery.createdAt),
+      },
       inputs: {
         orderBy: asc(extractionInput.sourceOrder),
       },
@@ -184,8 +194,6 @@ export async function setExtractionError(input: ExtractionErrorInput) {
       extractionId: input.extractionId,
       ownerId: input.ownerId,
       message: input.message,
-      type: input.type ?? null,
-      details: input.details ?? null,
       occurredAt: input.occurredAt ?? new Date(),
     });
   });

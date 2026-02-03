@@ -11,6 +11,7 @@ export const env = createEnv({
     CORS_ORIGIN: z.url(),
     GOOGLE_CLIENT_ID: z.string().min(1),
     GOOGLE_CLIENT_SECRET: z.string().min(1),
+    INTEGRATION_SECRETS_KEY: z.string().min(32),
     NODE_ENV: z
       .enum(["development", "production", "test"])
       .default("development"),

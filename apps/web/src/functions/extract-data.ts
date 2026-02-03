@@ -17,6 +17,8 @@ import { generateText, Output } from "ai";
 import { z } from "zod";
 import { getErrorMessage } from "@/lib/error-handling";
 import { ExtractionStrategyFactory } from "@/lib/extractors/factory";
+import { deliverWebhookTargetsForExtraction } from "@/lib/integrations/deliveries";
+import type { IntegrationDeliveryResult } from "@/lib/integrations/types";
 import {
   DEFAULT_LLM_MODEL_ID,
   LLM_MODEL_ID_LIST,
@@ -40,6 +42,7 @@ const ExtractDataFromModelSchema = z.object({
   modelId: z.string().min(1),
   files: z.array(FileInputSchema).min(1).max(10),
   llmModelId: z.enum(LLM_MODEL_ID_LIST).default(DEFAULT_LLM_MODEL_ID),
+  integrationTargetIds: z.array(z.string().min(1)).optional(),
 });
 
 function createNestedFieldSchema(
@@ -331,7 +334,22 @@ export const extractDataFromModel = createServerFn({ method: "POST" })
         completedAt: new Date(),
       });
 
-      return result;
+      let integrationDeliveries: IntegrationDeliveryResult[] = [];
+
+      try {
+        integrationDeliveries = await deliverWebhookTargetsForExtraction({
+          ownerId,
+          extractionId: extractionRun.id,
+          targetIds: data.integrationTargetIds,
+        });
+      } catch (error) {
+        console.error("Webhook delivery failed", error);
+      }
+
+      return {
+        ...result,
+        integrationDeliveries,
+      };
     } catch (error) {
       await setExtractionError({
         ownerId,

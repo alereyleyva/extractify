@@ -5,7 +5,19 @@
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": ["dist/**"]
+      "outputs": ["dist/**"],
+      "env": [
+        "BETTER_AUTH_SECRET",
+        "BETTER_AUTH_URL",
+        "CORS_ORIGIN",
+        "DATABASE_URL",
+        "AWS_REGION",
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY",
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET",
+        "INTEGRATION_SECRETS_KEY"
+      ]
     },
     "lint": {
       "dependsOn": ["^lint"]

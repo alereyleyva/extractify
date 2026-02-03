@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import type { Attribute } from "@/components/AttributeBuilder";
 import { RouteError } from "@/components/route-error";
+import { ExtractionPageSkeleton } from "@/components/skeletons/extraction-skeleton";
 import { AttributesStep } from "@/components/steps/AttributesStep";
 import { ExtractStep } from "@/components/steps/ExtractStep";
 import { ResultsStep } from "@/components/steps/ResultsStep";
@@ -12,23 +13,24 @@ import { Stepper } from "@/components/steps/Stepper";
 import { StepSection } from "@/components/steps/StepSection";
 import { UploadStep } from "@/components/steps/UploadStep";
 import { extractDataFromModel } from "@/functions/extract-data";
-import { getActiveModelVersion } from "@/functions/models";
 import { getErrorMessage } from "@/lib/error-handling";
 import type {
   IntegrationDeliveryResult,
   IntegrationTarget,
 } from "@/lib/integrations/types";
-import { fetchIntegrationTargets } from "@/lib/integrations-queries";
 import {
   DEFAULT_LLM_MODEL_ID,
   LLM_MODELS,
   type LlmModelId,
 } from "@/lib/llm-models";
-import { fetchActiveModelVersion, fetchModels } from "@/lib/models-queries";
-import { requireUser } from "@/lib/route-guards";
+import {
+  useActiveModelVersionQuery,
+  useIntegrationsQuery,
+  useModelsQuery,
+} from "@/lib/query-hooks";
 import { areAttributesValid } from "@/lib/validation";
 
-export const Route = createFileRoute("/extraction")({
+export const Route = createFileRoute("/_authed/extraction")({
   component: ExtractionPage,
   errorComponent: ({ error }) => (
     <RouteError
@@ -38,67 +40,38 @@ export const Route = createFileRoute("/extraction")({
       actionLabel="Back home"
     />
   ),
-  loader: async () => {
-    const models = ((await fetchModels()) || []) as unknown as {
-      id: string;
-      name: string;
-      activeVersion?: {
-        versionNumber: number;
-      } | null;
-    }[];
-    const defaultModelId = models[0]?.id;
-    const activeModelVersion = defaultModelId
-      ? await fetchActiveModelVersion(defaultModelId)
-      : null;
-    let integrationTargets: IntegrationTarget[] = [];
-    try {
-      integrationTargets = await fetchIntegrationTargets();
-    } catch (error) {
-      console.error("Unable to load integrations", error);
-    }
-
-    return {
-      models,
-      activeModelVersion,
-      integrationTargets,
-    };
-  },
-  beforeLoad: async () => {
-    const user = await requireUser();
-    return { user };
-  },
 });
 
 type Step = "upload" | "attributes" | "extract" | "results";
 
 function ExtractionPage() {
-  const { models, activeModelVersion, integrationTargets } =
-    Route.useLoaderData() as {
-      models: {
-        id: string;
-        name: string;
-        activeVersion?: {
-          versionNumber: number;
-        } | null;
-      }[];
-      activeModelVersion: {
-        modelId: string;
-        modelName: string;
-        versionId: string;
-        versionNumber: number;
-        attributes: Attribute[];
-      } | null;
-      integrationTargets: IntegrationTarget[];
-    };
-  const [selectedModelId, setSelectedModelId] = useState<string | null>(
-    activeModelVersion?.modelId ?? models[0]?.id ?? null,
-  );
-  const [currentModelVersion, setCurrentModelVersion] =
-    useState<typeof activeModelVersion>(activeModelVersion);
+  const { data: modelsData, isLoading: isLoadingModels } = useModelsQuery();
+  const { data: integrationTargetsData, isLoading: isLoadingIntegrations } =
+    useIntegrationsQuery();
+  const models = (modelsData || []) as unknown as {
+    id: string;
+    name: string;
+    activeVersion?: {
+      versionNumber: number;
+    } | null;
+  }[];
+  const integrationTargets = (integrationTargetsData ||
+    []) as IntegrationTarget[];
+  const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
+  const {
+    data: activeModelVersion,
+    isLoading: isLoadingActiveVersion,
+    error: activeModelVersionError,
+  } = useActiveModelVersionQuery(selectedModelId);
+  const currentModelVersion = (activeModelVersion || null) as {
+    modelId: string;
+    modelName: string;
+    versionId: string;
+    versionNumber: number;
+    attributes: Attribute[];
+  } | null;
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [attributes, setAttributes] = useState<Attribute[]>(
-    activeModelVersion?.attributes ?? [],
-  );
+  const [attributes, setAttributes] = useState<Attribute[]>([]);
   const [isExtracting, setIsExtracting] = useState(false);
   const [results, setResults] = useState<Record<string, unknown> | null>(null);
   const [integrationDeliveries, setIntegrationDeliveries] = useState<
@@ -131,13 +104,34 @@ function ExtractionPage() {
   );
 
   const extractDataFn = useServerFn(extractDataFromModel);
-  const getActiveModelVersionFn = useServerFn(getActiveModelVersion);
 
   useEffect(() => {
     if (results && currentStep === "extract") {
       setTimeout(() => setCurrentStep("results"), 300);
     }
   }, [results, currentStep]);
+
+  useEffect(() => {
+    if (selectedModelId || models.length === 0) {
+      return;
+    }
+    setSelectedModelId(models[0]?.id ?? null);
+  }, [models, selectedModelId]);
+
+  useEffect(() => {
+    if (!currentModelVersion) {
+      setAttributes([]);
+      return;
+    }
+    setAttributes(currentModelVersion.attributes ?? []);
+  }, [currentModelVersion]);
+
+  useEffect(() => {
+    if (!activeModelVersionError) {
+      return;
+    }
+    toast.error(getErrorMessage(activeModelVersionError));
+  }, [activeModelVersionError]);
 
   useEffect(() => {
     if (!hasTouchedIntegrations) {
@@ -149,34 +143,6 @@ function ExtractionPage() {
       prev.filter((id) => enabledIntegrationIds.includes(id)),
     );
   }, [enabledIntegrationIds, hasTouchedIntegrations]);
-
-  useEffect(() => {
-    if (!selectedModelId) {
-      setCurrentModelVersion(null);
-      setAttributes([]);
-      return;
-    }
-
-    if (currentModelVersion?.modelId === selectedModelId) {
-      return;
-    }
-
-    const loadModel = async () => {
-      try {
-        const activeVersion = await getActiveModelVersionFn({
-          data: { modelId: selectedModelId },
-        });
-        setCurrentModelVersion(activeVersion as typeof activeModelVersion);
-        setAttributes((activeVersion?.attributes as Attribute[]) || []);
-      } catch (error) {
-        toast.error(getErrorMessage(error));
-        setCurrentModelVersion(null);
-        setAttributes([]);
-      }
-    };
-
-    loadModel();
-  }, [selectedModelId, currentModelVersion, getActiveModelVersionFn]);
 
   const handleFileSelect = (files: File[]) => {
     setSelectedFiles(files);
@@ -297,6 +263,15 @@ function ExtractionPage() {
       ] as { key: Step; label: string; number: number }[],
     [],
   );
+
+  const isInitialLoading =
+    (isLoadingModels && models.length === 0) ||
+    (isLoadingIntegrations && integrationTargets.length === 0);
+  const isActiveVersionLoading = isLoadingActiveVersion && !currentModelVersion;
+
+  if (isInitialLoading || isActiveVersionLoading) {
+    return <ExtractionPageSkeleton />;
+  }
 
   if (models.length === 0) {
     return (

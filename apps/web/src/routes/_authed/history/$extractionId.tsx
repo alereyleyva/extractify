@@ -2,23 +2,16 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AlertTriangle, ArrowLeft, FileText, History } from "lucide-react";
 import { ExtractionResults } from "@/components/ExtractionResults";
 import { RouteError } from "@/components/route-error";
+import { HistoryDetailSkeleton } from "@/components/skeletons/history-skeletons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDate } from "@/lib/date";
-import { fetchExtraction } from "@/lib/extractions-queries";
 import type { ExtractionDetail } from "@/lib/extractions-types";
 import { LLM_MODELS, type LlmModelId } from "@/lib/llm-models";
-import { requireUser } from "@/lib/route-guards";
+import { useExtractionQuery } from "@/lib/query-hooks";
 
-export const Route = createFileRoute("/history/$extractionId")({
+export const Route = createFileRoute("/_authed/history/$extractionId")({
   component: HistoryDetailPage,
-  loader: async ({ params }) => {
-    return fetchExtraction(params.extractionId);
-  },
-  beforeLoad: async () => {
-    const user = await requireUser();
-    return { user };
-  },
   errorComponent: ({ error }) => (
     <RouteError
       error={error}
@@ -68,8 +61,25 @@ function getDeliveryStyles(
 }
 
 function HistoryDetailPage() {
-  const extraction = Route.useLoaderData() as ExtractionDetail;
+  const { extractionId } = Route.useParams();
+  const { data, isLoading, isError, error } = useExtractionQuery(extractionId);
+  const extraction = data as ExtractionDetail | undefined;
   const navigate = useNavigate();
+
+  if (isLoading) {
+    return <HistoryDetailSkeleton />;
+  }
+
+  if (isError || !extraction) {
+    return (
+      <RouteError
+        error={error instanceof Error ? error : new Error("Unable to load")}
+        title="Unable to load extraction"
+        actionHref="/history"
+        actionLabel="Back to history"
+      />
+    );
+  }
   const llmLabel =
     LLM_MODELS.find((model) => model.id === extraction.llmModelId)?.label ??
     extraction.llmModelId;

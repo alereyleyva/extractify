@@ -1,21 +1,18 @@
-import {
-  createFileRoute,
-  Link,
-  useNavigate,
-  useRouter,
-} from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, Save, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { ModelEditSkeleton } from "@/components/skeletons/models-skeletons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { deleteModel, updateModel } from "@/functions/models";
 import { getErrorMessage } from "@/lib/error-handling";
-import { fetchModel } from "@/lib/models-queries";
-import { requireUser } from "@/lib/route-guards";
+import { useModelQuery } from "@/lib/query-hooks";
+import { queryKeys } from "@/lib/query-keys";
 
 type ModelDetail = {
   id: string;
@@ -23,31 +20,25 @@ type ModelDetail = {
   description?: string | null;
 };
 
-export const Route = createFileRoute("/models/$modelId/edit")({
+export const Route = createFileRoute("/_authed/models/$modelId/edit")({
   component: ModelEditPage,
-  loader: async ({ params }) => {
-    return fetchModel(params.modelId);
-  },
-  beforeLoad: async () => {
-    const user = await requireUser();
-    return { user };
-  },
 });
 
 function ModelEditPage() {
   const { modelId } = Route.useParams();
   const navigate = useNavigate();
-  const router = useRouter();
-  const model = Route.useLoaderData() as ModelDetail;
+  const queryClient = useQueryClient();
+  const { data, isLoading, isError, error } = useModelQuery(modelId);
+  const model = data as ModelDetail | undefined;
   const updateModelFn = useServerFn(updateModel);
   const deleteModelFn = useServerFn(deleteModel);
-  const [name, setName] = useState(model.name || "");
-  const [description, setDescription] = useState(model.description || "");
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    setName(model.name || "");
-    setDescription(model.description || "");
+    setName(model?.name || "");
+    setDescription(model?.description || "");
   }, [model]);
 
   const handleSave = async () => {
@@ -68,7 +59,12 @@ function ModelEditPage() {
         },
       });
       toast.success("Model updated");
-      await router.invalidate();
+      await queryClient.invalidateQueries({ queryKey: queryKeys.models });
+      if (modelId) {
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.model(modelId),
+        });
+      }
       await navigate({ to: "/models/$modelId", params: { modelId } });
     } catch (error) {
       toast.error(getErrorMessage(error));
@@ -90,12 +86,36 @@ function ModelEditPage() {
     try {
       await deleteModelFn({ data: { modelId: model.id } });
       toast.success("Model deleted");
-      await router.invalidate();
+      await queryClient.invalidateQueries({ queryKey: queryKeys.models });
       await navigate({ to: "/models" });
     } catch (error) {
       toast.error(getErrorMessage(error));
     }
   };
+
+  if (isLoading) {
+    return <ModelEditSkeleton />;
+  }
+
+  if (isError || !model) {
+    return (
+      <div className="min-h-screen bg-background pt-20 pb-16">
+        <div className="container mx-auto max-w-4xl px-6">
+          <Card className="border-0 bg-card/40 shadow-sm ring-1 ring-border/40">
+            <CardContent className="py-12 text-center">
+              <p className="font-medium">Unable to load model</p>
+              <p className="mt-2 text-muted-foreground text-sm">
+                {error instanceof Error ? error.message : "Please try again."}
+              </p>
+              <Button asChild className="mt-6">
+                <Link to="/models">Back to models</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pt-20 pb-16">

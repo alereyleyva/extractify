@@ -1,24 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, BookOpen, Plus } from "lucide-react";
+import { ModelsListSkeleton } from "@/components/skeletons/models-skeletons";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/date";
-import { fetchModels } from "@/lib/models-queries";
 import type { ModelSummary } from "@/lib/models-types";
-import { requireUser } from "@/lib/route-guards";
+import { useModelsQuery, usePrefetchModel } from "@/lib/query-hooks";
 
-export const Route = createFileRoute("/models/")({
+export const Route = createFileRoute("/_authed/models/")({
   component: ModelsPage,
-  loader: async () => {
-    return fetchModels();
-  },
-  beforeLoad: async () => {
-    const user = await requireUser();
-    return { user };
-  },
 });
 
 function ModelsPage() {
-  const models = (Route.useLoaderData() || []) as ModelSummary[];
+  const { data, isLoading } = useModelsQuery();
+  const prefetchModel = usePrefetchModel();
+  const models = (data || []) as unknown as ModelSummary[];
 
   return (
     <div className="min-h-screen bg-background pt-20 pb-16">
@@ -45,7 +40,9 @@ function ModelsPage() {
           </Button>
         </div>
 
-        {models.length === 0 ? (
+        {isLoading ? (
+          <ModelsListSkeleton />
+        ) : models.length === 0 ? (
           <div className="rounded-lg bg-card/40 p-10 text-center shadow-sm ring-1 ring-border/40">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
               <div className="h-8 w-8 rounded-full bg-primary/20" />
@@ -86,6 +83,8 @@ function ModelsPage() {
                     <Link
                       to="/models/$modelId"
                       params={{ modelId: model.id }}
+                      preload="intent"
+                      onMouseEnter={() => prefetchModel(model.id)}
                       aria-label={`View ${model.name}`}
                     >
                       <ArrowRight className="h-4 w-4" />

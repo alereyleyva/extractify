@@ -1,54 +1,40 @@
-import {
-  createFileRoute,
-  Link,
-  useNavigate,
-  useRouter,
-} from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AttributeBuilder } from "@/components/AttributeBuilder";
+import { VersionEditorSkeleton } from "@/components/skeletons/models-skeletons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { createModelVersion } from "@/functions/models";
 import { getErrorMessage } from "@/lib/error-handling";
-import { fetchModel } from "@/lib/models-queries";
 import type { ModelDetail, ModelVersion } from "@/lib/models-types";
-import { requireUser } from "@/lib/route-guards";
+import { useModelQuery } from "@/lib/query-hooks";
+import { queryKeys } from "@/lib/query-keys";
 import { areAttributesValid, validateAttributes } from "@/lib/validation";
 
-export const Route = createFileRoute("/models/$modelId/versions/new")({
+export const Route = createFileRoute("/_authed/models/$modelId/versions/new")({
   component: VersionCreatePage,
-  loader: async ({ params }) => {
-    return fetchModel(params.modelId);
-  },
-  beforeLoad: async () => {
-    const user = await requireUser();
-    return { user };
-  },
 });
 
 function VersionCreatePage() {
   const { modelId } = Route.useParams();
   const navigate = useNavigate();
-  const router = useRouter();
-  const model = Route.useLoaderData() as ModelDetail;
+  const queryClient = useQueryClient();
+  const { data, isLoading, isError, error } = useModelQuery(modelId);
+  const model = data as ModelDetail | undefined;
   const createVersionFn = useServerFn(createModelVersion);
-  const [attributes, setAttributes] = useState<ModelVersion["attributes"]>(
-    () => {
-      if (model.versions.length === 0) {
-        return [];
-      }
-      const activeVersion = model.versions.find((version) => version.isActive);
-      return activeVersion?.attributes || model.versions[0].attributes || [];
-    },
-  );
+  const [attributes, setAttributes] = useState<ModelVersion["attributes"]>([]);
   const [changelog, setChangelog] = useState("");
   const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
+    if (!model) {
+      return;
+    }
     if (model.versions.length === 0) {
       setAttributes([]);
       return;
@@ -80,7 +66,12 @@ function VersionCreatePage() {
         },
       });
       toast.success("New version created");
-      await router.invalidate();
+      await queryClient.invalidateQueries({ queryKey: queryKeys.models });
+      if (modelId) {
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.model(modelId),
+        });
+      }
       await navigate({ to: "/models/$modelId", params: { modelId } });
     } catch (error) {
       toast.error(getErrorMessage(error));
@@ -88,6 +79,30 @@ function VersionCreatePage() {
       setIsCreating(false);
     }
   };
+
+  if (isLoading) {
+    return <VersionEditorSkeleton />;
+  }
+
+  if (isError || !model) {
+    return (
+      <div className="min-h-screen bg-background pt-20 pb-16">
+        <div className="container mx-auto max-w-5xl px-6">
+          <Card className="border-0 bg-card/40 shadow-sm ring-1 ring-border/40">
+            <CardContent className="py-12 text-center">
+              <p className="font-medium">Unable to load model</p>
+              <p className="mt-2 text-muted-foreground text-sm">
+                {error instanceof Error ? error.message : "Please try again."}
+              </p>
+              <Button asChild className="mt-6">
+                <Link to="/models">Back to models</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pt-20 pb-16">

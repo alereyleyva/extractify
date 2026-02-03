@@ -1,18 +1,19 @@
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, ArrowRight, Check, Pencil, Plus } from "lucide-react";
 import { useMemo } from "react";
 import { toast } from "sonner";
 import { RouteError } from "@/components/route-error";
+import { ModelDetailSkeleton } from "@/components/skeletons/models-skeletons";
 import { Button } from "@/components/ui/button";
 import { setActiveModelVersion } from "@/functions/models";
 import { formatDate } from "@/lib/date";
 import { getErrorMessage } from "@/lib/error-handling";
-import { fetchModel } from "@/lib/models-queries";
 import type { ModelDetail } from "@/lib/models-types";
-import { requireUser } from "@/lib/route-guards";
-
-export const Route = createFileRoute("/models/$modelId/")({
+import { useModelQuery } from "@/lib/query-hooks";
+import { queryKeys } from "@/lib/query-keys";
+export const Route = createFileRoute("/_authed/models/$modelId/")({
   component: ModelDetailPage,
   errorComponent: ({ error }) => (
     <RouteError
@@ -22,18 +23,13 @@ export const Route = createFileRoute("/models/$modelId/")({
       actionLabel="Back to models"
     />
   ),
-  loader: async ({ params }) => {
-    return fetchModel(params.modelId);
-  },
-  beforeLoad: async () => {
-    const user = await requireUser();
-    return { user };
-  },
 });
 
 function ModelDetailPage() {
-  const router = useRouter();
-  const model = Route.useLoaderData() as ModelDetail;
+  const { modelId } = Route.useParams();
+  const queryClient = useQueryClient();
+  const { data, isLoading, isError, error } = useModelQuery(modelId);
+  const model = data as ModelDetail | undefined;
   const setActiveFn = useServerFn(setActiveModelVersion);
 
   const sortedVersions = useMemo(() => {
@@ -49,11 +45,31 @@ function ModelDetailPage() {
     try {
       await setActiveFn({ data: { versionId } });
       toast.success("Active version updated");
-      await router.invalidate();
+      await queryClient.invalidateQueries({ queryKey: queryKeys.models });
+      if (modelId) {
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.model(modelId),
+        });
+      }
     } catch (error) {
       toast.error(getErrorMessage(error));
     }
   };
+
+  if (isLoading) {
+    return <ModelDetailSkeleton />;
+  }
+
+  if (isError || !model) {
+    return (
+      <RouteError
+        error={error instanceof Error ? error : new Error("Unable to load")}
+        title="Unable to load model"
+        actionHref="/models"
+        actionLabel="Back to models"
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pt-20 pb-16">

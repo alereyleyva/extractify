@@ -1,16 +1,10 @@
 import { Link } from "@tanstack/react-router";
 import UserMenu from "@/components/user-menu";
+import { useCurrentUserQuery } from "@/lib/query-hooks";
 
-type HeaderUser = {
-  name?: string | null;
-  image?: string | null;
-};
+export default function Header() {
+  const { data: user } = useCurrentUserQuery();
 
-type HeaderProps = {
-  user: HeaderUser | null;
-};
-
-export default function Header({ user }: HeaderProps) {
   if (!user) {
     return null;
   }

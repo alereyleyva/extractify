@@ -1,29 +1,25 @@
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Globe, PlugZap, PlusCircle } from "lucide-react";
 import { toast } from "sonner";
+import { IntegrationsListSkeleton } from "@/components/skeletons/integrations-skeletons";
 import { Button } from "@/components/ui/button";
 import { updateIntegrationTarget } from "@/functions/integrations";
 import { getErrorMessage } from "@/lib/error-handling";
 import type { IntegrationTarget } from "@/lib/integrations/types";
-import { fetchIntegrationTargets } from "@/lib/integrations-queries";
-import { requireUser } from "@/lib/route-guards";
+import { useIntegrationsQuery } from "@/lib/query-hooks";
+import { queryKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/integrations/")({
+export const Route = createFileRoute("/_authed/integrations/")({
   component: IntegrationsPage,
-  loader: async () => {
-    return fetchIntegrationTargets();
-  },
-  beforeLoad: async () => {
-    const user = await requireUser();
-    return { user };
-  },
 });
 
 function IntegrationsPage() {
-  const router = useRouter();
-  const targets = (Route.useLoaderData() as IntegrationTarget[]) ?? [];
+  const queryClient = useQueryClient();
+  const { data, isLoading } = useIntegrationsQuery();
+  const targets = (data || []) as unknown as IntegrationTarget[];
   const updateIntegrationTargetFn = useServerFn(updateIntegrationTarget);
 
   const handleToggle = async (target: IntegrationTarget) => {
@@ -34,7 +30,7 @@ function IntegrationsPage() {
           enabled: !target.enabled,
         },
       });
-      await router.invalidate();
+      await queryClient.invalidateQueries({ queryKey: queryKeys.integrations });
     } catch (error) {
       toast.error(getErrorMessage(error));
     }
@@ -65,7 +61,9 @@ function IntegrationsPage() {
             <Globe className="h-4 w-4" />
             {targets.length === 0 ? "No integrations yet" : "Your integrations"}
           </div>
-          {targets.length === 0 ? (
+          {isLoading ? (
+            <IntegrationsListSkeleton />
+          ) : targets.length === 0 ? (
             <div className="rounded-2xl border border-border/60 border-dashed bg-card/30 p-10 text-center shadow-sm">
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <PlugZap className="h-5 w-5" />

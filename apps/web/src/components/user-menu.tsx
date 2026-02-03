@@ -1,4 +1,5 @@
-import { useNavigate, useRouter } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import { LogOut } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -8,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { authClient } from "@/lib/auth-client";
+import { queryKeys } from "@/lib/query-keys";
 
 type UserMenuUser = {
   name?: string | null;
@@ -28,7 +30,7 @@ function getInitials(name?: string | null) {
 
 export default function UserMenu({ user }: UserMenuProps) {
   const navigate = useNavigate();
-  const router = useRouter();
+  const queryClient = useQueryClient();
 
   return (
     <DropdownMenu>
@@ -47,7 +49,9 @@ export default function UserMenu({ user }: UserMenuProps) {
             authClient.signOut({
               fetchOptions: {
                 onSuccess: async () => {
-                  await router.invalidate();
+                  await queryClient.invalidateQueries({
+                    queryKey: queryKeys.currentUser,
+                  });
                   navigate({
                     to: "/",
                   });

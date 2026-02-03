@@ -1,9 +1,5 @@
-import {
-  createFileRoute,
-  Link,
-  useNavigate,
-  useRouter,
-} from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, PlugZap } from "lucide-react";
 import { useState } from "react";
@@ -22,19 +18,14 @@ import {
 import { createWebhookIntegration } from "@/functions/integrations";
 import { getErrorMessage } from "@/lib/error-handling";
 import type { IntegrationTargetType } from "@/lib/integrations/types";
-import { requireUser } from "@/lib/route-guards";
-
-export const Route = createFileRoute("/integrations/new")({
+import { queryKeys } from "@/lib/query-keys";
+export const Route = createFileRoute("/_authed/integrations/new")({
   component: IntegrationCreatePage,
-  beforeLoad: async () => {
-    const user = await requireUser();
-    return { user };
-  },
 });
 
 function IntegrationCreatePage() {
   const navigate = useNavigate();
-  const router = useRouter();
+  const queryClient = useQueryClient();
   const createWebhookIntegrationFn = useServerFn(createWebhookIntegration);
 
   const [name, setName] = useState("");
@@ -69,7 +60,7 @@ function IntegrationCreatePage() {
         },
       });
       toast.success("Integration created");
-      await router.invalidate();
+      await queryClient.invalidateQueries({ queryKey: queryKeys.integrations });
       await navigate({ to: "/integrations" });
     } catch (error) {
       toast.error(getErrorMessage(error));

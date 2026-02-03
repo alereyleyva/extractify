@@ -1,10 +1,6 @@
 import type { AttributeInput } from "@extractify/shared/attribute-model";
-import {
-  createFileRoute,
-  Link,
-  useNavigate,
-  useRouter,
-} from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, Plus } from "lucide-react";
 import { useState } from "react";
@@ -16,20 +12,16 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { createModel } from "@/functions/models";
 import { getErrorMessage } from "@/lib/error-handling";
-import { requireUser } from "@/lib/route-guards";
+import { queryKeys } from "@/lib/query-keys";
 import { areAttributesValid, validateAttributes } from "@/lib/validation";
 
-export const Route = createFileRoute("/models/new")({
+export const Route = createFileRoute("/_authed/models/new")({
   component: ModelCreatePage,
-  beforeLoad: async () => {
-    const user = await requireUser();
-    return { user };
-  },
 });
 
 function ModelCreatePage() {
   const navigate = useNavigate();
-  const router = useRouter();
+  const queryClient = useQueryClient();
   const createModelFn = useServerFn(createModel);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -62,7 +54,7 @@ function ModelCreatePage() {
 
       if (result && typeof result === "object" && "modelId" in result) {
         toast.success("Model created");
-        await router.invalidate();
+        await queryClient.invalidateQueries({ queryKey: queryKeys.models });
         await navigate({
           to: "/models/$modelId",
           params: { modelId: result.modelId as string },

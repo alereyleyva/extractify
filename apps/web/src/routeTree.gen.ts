@@ -9,42 +9,27 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ModelsRouteImport } from './routes/models'
-import { Route as IntegrationsRouteImport } from './routes/integrations'
-import { Route as HistoryRouteImport } from './routes/history'
-import { Route as ExtractionRouteImport } from './routes/extraction'
+import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ModelsIndexRouteImport } from './routes/models.index'
-import { Route as IntegrationsIndexRouteImport } from './routes/integrations.index'
-import { Route as HistoryIndexRouteImport } from './routes/history.index'
-import { Route as ModelsNewRouteImport } from './routes/models.new'
-import { Route as ModelsModelIdRouteImport } from './routes/models.$modelId'
-import { Route as IntegrationsNewRouteImport } from './routes/integrations.new'
-import { Route as HistoryExtractionIdRouteImport } from './routes/history.$extractionId'
-import { Route as ModelsModelIdIndexRouteImport } from './routes/models.$modelId.index'
-import { Route as ModelsModelIdEditRouteImport } from './routes/models.$modelId.edit'
+import { Route as AuthedModelsRouteImport } from './routes/_authed/models'
+import { Route as AuthedIntegrationsRouteImport } from './routes/_authed/integrations'
+import { Route as AuthedHistoryRouteImport } from './routes/_authed/history'
+import { Route as AuthedExtractionRouteImport } from './routes/_authed/extraction'
+import { Route as AuthedModelsIndexRouteImport } from './routes/_authed/models/index'
+import { Route as AuthedIntegrationsIndexRouteImport } from './routes/_authed/integrations/index'
+import { Route as AuthedHistoryIndexRouteImport } from './routes/_authed/history/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
-import { Route as ModelsModelIdVersionsNewRouteImport } from './routes/models.$modelId.versions.new'
-import { Route as ModelsModelIdVersionsVersionIdRouteImport } from './routes/models.$modelId.versions.$versionId'
+import { Route as AuthedModelsNewRouteImport } from './routes/_authed/models/new'
+import { Route as AuthedModelsModelIdRouteImport } from './routes/_authed/models/$modelId'
+import { Route as AuthedIntegrationsNewRouteImport } from './routes/_authed/integrations/new'
+import { Route as AuthedHistoryExtractionIdRouteImport } from './routes/_authed/history/$extractionId'
+import { Route as AuthedModelsModelIdIndexRouteImport } from './routes/_authed/models/$modelId/index'
+import { Route as AuthedModelsModelIdEditRouteImport } from './routes/_authed/models/$modelId/edit'
+import { Route as AuthedModelsModelIdVersionsNewRouteImport } from './routes/_authed/models/$modelId/versions/new'
+import { Route as AuthedModelsModelIdVersionsVersionIdRouteImport } from './routes/_authed/models/$modelId/versions/$versionId'
 
-const ModelsRoute = ModelsRouteImport.update({
-  id: '/models',
-  path: '/models',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IntegrationsRoute = IntegrationsRouteImport.update({
-  id: '/integrations',
-  path: '/integrations',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HistoryRoute = HistoryRouteImport.update({
-  id: '/history',
-  path: '/history',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ExtractionRoute = ExtractionRouteImport.update({
-  id: '/extraction',
-  path: '/extraction',
+const AuthedRoute = AuthedRouteImport.update({
+  id: '/_authed',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -52,122 +37,145 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ModelsIndexRoute = ModelsIndexRouteImport.update({
+const AuthedModelsRoute = AuthedModelsRouteImport.update({
+  id: '/models',
+  path: '/models',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedIntegrationsRoute = AuthedIntegrationsRouteImport.update({
+  id: '/integrations',
+  path: '/integrations',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedHistoryRoute = AuthedHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedExtractionRoute = AuthedExtractionRouteImport.update({
+  id: '/extraction',
+  path: '/extraction',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedModelsIndexRoute = AuthedModelsIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => ModelsRoute,
+  getParentRoute: () => AuthedModelsRoute,
 } as any)
-const IntegrationsIndexRoute = IntegrationsIndexRouteImport.update({
+const AuthedIntegrationsIndexRoute = AuthedIntegrationsIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => IntegrationsRoute,
+  getParentRoute: () => AuthedIntegrationsRoute,
 } as any)
-const HistoryIndexRoute = HistoryIndexRouteImport.update({
+const AuthedHistoryIndexRoute = AuthedHistoryIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => HistoryRoute,
-} as any)
-const ModelsNewRoute = ModelsNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => ModelsRoute,
-} as any)
-const ModelsModelIdRoute = ModelsModelIdRouteImport.update({
-  id: '/$modelId',
-  path: '/$modelId',
-  getParentRoute: () => ModelsRoute,
-} as any)
-const IntegrationsNewRoute = IntegrationsNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => IntegrationsRoute,
-} as any)
-const HistoryExtractionIdRoute = HistoryExtractionIdRouteImport.update({
-  id: '/$extractionId',
-  path: '/$extractionId',
-  getParentRoute: () => HistoryRoute,
-} as any)
-const ModelsModelIdIndexRoute = ModelsModelIdIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => ModelsModelIdRoute,
-} as any)
-const ModelsModelIdEditRoute = ModelsModelIdEditRouteImport.update({
-  id: '/edit',
-  path: '/edit',
-  getParentRoute: () => ModelsModelIdRoute,
+  getParentRoute: () => AuthedHistoryRoute,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ModelsModelIdVersionsNewRoute =
-  ModelsModelIdVersionsNewRouteImport.update({
+const AuthedModelsNewRoute = AuthedModelsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AuthedModelsRoute,
+} as any)
+const AuthedModelsModelIdRoute = AuthedModelsModelIdRouteImport.update({
+  id: '/$modelId',
+  path: '/$modelId',
+  getParentRoute: () => AuthedModelsRoute,
+} as any)
+const AuthedIntegrationsNewRoute = AuthedIntegrationsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AuthedIntegrationsRoute,
+} as any)
+const AuthedHistoryExtractionIdRoute =
+  AuthedHistoryExtractionIdRouteImport.update({
+    id: '/$extractionId',
+    path: '/$extractionId',
+    getParentRoute: () => AuthedHistoryRoute,
+  } as any)
+const AuthedModelsModelIdIndexRoute =
+  AuthedModelsModelIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthedModelsModelIdRoute,
+  } as any)
+const AuthedModelsModelIdEditRoute = AuthedModelsModelIdEditRouteImport.update({
+  id: '/edit',
+  path: '/edit',
+  getParentRoute: () => AuthedModelsModelIdRoute,
+} as any)
+const AuthedModelsModelIdVersionsNewRoute =
+  AuthedModelsModelIdVersionsNewRouteImport.update({
     id: '/versions/new',
     path: '/versions/new',
-    getParentRoute: () => ModelsModelIdRoute,
+    getParentRoute: () => AuthedModelsModelIdRoute,
   } as any)
-const ModelsModelIdVersionsVersionIdRoute =
-  ModelsModelIdVersionsVersionIdRouteImport.update({
+const AuthedModelsModelIdVersionsVersionIdRoute =
+  AuthedModelsModelIdVersionsVersionIdRouteImport.update({
     id: '/versions/$versionId',
     path: '/versions/$versionId',
-    getParentRoute: () => ModelsModelIdRoute,
+    getParentRoute: () => AuthedModelsModelIdRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/extraction': typeof ExtractionRoute
-  '/history': typeof HistoryRouteWithChildren
-  '/integrations': typeof IntegrationsRouteWithChildren
-  '/models': typeof ModelsRouteWithChildren
-  '/history/$extractionId': typeof HistoryExtractionIdRoute
-  '/integrations/new': typeof IntegrationsNewRoute
-  '/models/$modelId': typeof ModelsModelIdRouteWithChildren
-  '/models/new': typeof ModelsNewRoute
-  '/history/': typeof HistoryIndexRoute
-  '/integrations/': typeof IntegrationsIndexRoute
-  '/models/': typeof ModelsIndexRoute
+  '/extraction': typeof AuthedExtractionRoute
+  '/history': typeof AuthedHistoryRouteWithChildren
+  '/integrations': typeof AuthedIntegrationsRouteWithChildren
+  '/models': typeof AuthedModelsRouteWithChildren
+  '/history/$extractionId': typeof AuthedHistoryExtractionIdRoute
+  '/integrations/new': typeof AuthedIntegrationsNewRoute
+  '/models/$modelId': typeof AuthedModelsModelIdRouteWithChildren
+  '/models/new': typeof AuthedModelsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/models/$modelId/edit': typeof ModelsModelIdEditRoute
-  '/models/$modelId/': typeof ModelsModelIdIndexRoute
-  '/models/$modelId/versions/$versionId': typeof ModelsModelIdVersionsVersionIdRoute
-  '/models/$modelId/versions/new': typeof ModelsModelIdVersionsNewRoute
+  '/history/': typeof AuthedHistoryIndexRoute
+  '/integrations/': typeof AuthedIntegrationsIndexRoute
+  '/models/': typeof AuthedModelsIndexRoute
+  '/models/$modelId/edit': typeof AuthedModelsModelIdEditRoute
+  '/models/$modelId/': typeof AuthedModelsModelIdIndexRoute
+  '/models/$modelId/versions/$versionId': typeof AuthedModelsModelIdVersionsVersionIdRoute
+  '/models/$modelId/versions/new': typeof AuthedModelsModelIdVersionsNewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/extraction': typeof ExtractionRoute
-  '/history/$extractionId': typeof HistoryExtractionIdRoute
-  '/integrations/new': typeof IntegrationsNewRoute
-  '/models/new': typeof ModelsNewRoute
-  '/history': typeof HistoryIndexRoute
-  '/integrations': typeof IntegrationsIndexRoute
-  '/models': typeof ModelsIndexRoute
+  '/extraction': typeof AuthedExtractionRoute
+  '/history/$extractionId': typeof AuthedHistoryExtractionIdRoute
+  '/integrations/new': typeof AuthedIntegrationsNewRoute
+  '/models/new': typeof AuthedModelsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/models/$modelId/edit': typeof ModelsModelIdEditRoute
-  '/models/$modelId': typeof ModelsModelIdIndexRoute
-  '/models/$modelId/versions/$versionId': typeof ModelsModelIdVersionsVersionIdRoute
-  '/models/$modelId/versions/new': typeof ModelsModelIdVersionsNewRoute
+  '/history': typeof AuthedHistoryIndexRoute
+  '/integrations': typeof AuthedIntegrationsIndexRoute
+  '/models': typeof AuthedModelsIndexRoute
+  '/models/$modelId/edit': typeof AuthedModelsModelIdEditRoute
+  '/models/$modelId': typeof AuthedModelsModelIdIndexRoute
+  '/models/$modelId/versions/$versionId': typeof AuthedModelsModelIdVersionsVersionIdRoute
+  '/models/$modelId/versions/new': typeof AuthedModelsModelIdVersionsNewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/extraction': typeof ExtractionRoute
-  '/history': typeof HistoryRouteWithChildren
-  '/integrations': typeof IntegrationsRouteWithChildren
-  '/models': typeof ModelsRouteWithChildren
-  '/history/$extractionId': typeof HistoryExtractionIdRoute
-  '/integrations/new': typeof IntegrationsNewRoute
-  '/models/$modelId': typeof ModelsModelIdRouteWithChildren
-  '/models/new': typeof ModelsNewRoute
-  '/history/': typeof HistoryIndexRoute
-  '/integrations/': typeof IntegrationsIndexRoute
-  '/models/': typeof ModelsIndexRoute
+  '/_authed': typeof AuthedRouteWithChildren
+  '/_authed/extraction': typeof AuthedExtractionRoute
+  '/_authed/history': typeof AuthedHistoryRouteWithChildren
+  '/_authed/integrations': typeof AuthedIntegrationsRouteWithChildren
+  '/_authed/models': typeof AuthedModelsRouteWithChildren
+  '/_authed/history/$extractionId': typeof AuthedHistoryExtractionIdRoute
+  '/_authed/integrations/new': typeof AuthedIntegrationsNewRoute
+  '/_authed/models/$modelId': typeof AuthedModelsModelIdRouteWithChildren
+  '/_authed/models/new': typeof AuthedModelsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/models/$modelId/edit': typeof ModelsModelIdEditRoute
-  '/models/$modelId/': typeof ModelsModelIdIndexRoute
-  '/models/$modelId/versions/$versionId': typeof ModelsModelIdVersionsVersionIdRoute
-  '/models/$modelId/versions/new': typeof ModelsModelIdVersionsNewRoute
+  '/_authed/history/': typeof AuthedHistoryIndexRoute
+  '/_authed/integrations/': typeof AuthedIntegrationsIndexRoute
+  '/_authed/models/': typeof AuthedModelsIndexRoute
+  '/_authed/models/$modelId/edit': typeof AuthedModelsModelIdEditRoute
+  '/_authed/models/$modelId/': typeof AuthedModelsModelIdIndexRoute
+  '/_authed/models/$modelId/versions/$versionId': typeof AuthedModelsModelIdVersionsVersionIdRoute
+  '/_authed/models/$modelId/versions/new': typeof AuthedModelsModelIdVersionsNewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -181,10 +189,10 @@ export interface FileRouteTypes {
     | '/integrations/new'
     | '/models/$modelId'
     | '/models/new'
+    | '/api/auth/$'
     | '/history/'
     | '/integrations/'
     | '/models/'
-    | '/api/auth/$'
     | '/models/$modelId/edit'
     | '/models/$modelId/'
     | '/models/$modelId/versions/$versionId'
@@ -196,10 +204,10 @@ export interface FileRouteTypes {
     | '/history/$extractionId'
     | '/integrations/new'
     | '/models/new'
+    | '/api/auth/$'
     | '/history'
     | '/integrations'
     | '/models'
-    | '/api/auth/$'
     | '/models/$modelId/edit'
     | '/models/$modelId'
     | '/models/$modelId/versions/$versionId'
@@ -207,61 +215,38 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/extraction'
-    | '/history'
-    | '/integrations'
-    | '/models'
-    | '/history/$extractionId'
-    | '/integrations/new'
-    | '/models/$modelId'
-    | '/models/new'
-    | '/history/'
-    | '/integrations/'
-    | '/models/'
+    | '/_authed'
+    | '/_authed/extraction'
+    | '/_authed/history'
+    | '/_authed/integrations'
+    | '/_authed/models'
+    | '/_authed/history/$extractionId'
+    | '/_authed/integrations/new'
+    | '/_authed/models/$modelId'
+    | '/_authed/models/new'
     | '/api/auth/$'
-    | '/models/$modelId/edit'
-    | '/models/$modelId/'
-    | '/models/$modelId/versions/$versionId'
-    | '/models/$modelId/versions/new'
+    | '/_authed/history/'
+    | '/_authed/integrations/'
+    | '/_authed/models/'
+    | '/_authed/models/$modelId/edit'
+    | '/_authed/models/$modelId/'
+    | '/_authed/models/$modelId/versions/$versionId'
+    | '/_authed/models/$modelId/versions/new'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  ExtractionRoute: typeof ExtractionRoute
-  HistoryRoute: typeof HistoryRouteWithChildren
-  IntegrationsRoute: typeof IntegrationsRouteWithChildren
-  ModelsRoute: typeof ModelsRouteWithChildren
+  AuthedRoute: typeof AuthedRouteWithChildren
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/models': {
-      id: '/models'
-      path: '/models'
-      fullPath: '/models'
-      preLoaderRoute: typeof ModelsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/integrations': {
-      id: '/integrations'
-      path: '/integrations'
-      fullPath: '/integrations'
-      preLoaderRoute: typeof IntegrationsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/history': {
-      id: '/history'
-      path: '/history'
-      fullPath: '/history'
-      preLoaderRoute: typeof HistoryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/extraction': {
-      id: '/extraction'
-      path: '/extraction'
-      fullPath: '/extraction'
-      preLoaderRoute: typeof ExtractionRouteImport
+    '/_authed': {
+      id: '/_authed'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -271,68 +256,54 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/models/': {
-      id: '/models/'
+    '/_authed/models': {
+      id: '/_authed/models'
+      path: '/models'
+      fullPath: '/models'
+      preLoaderRoute: typeof AuthedModelsRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/integrations': {
+      id: '/_authed/integrations'
+      path: '/integrations'
+      fullPath: '/integrations'
+      preLoaderRoute: typeof AuthedIntegrationsRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/history': {
+      id: '/_authed/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof AuthedHistoryRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/extraction': {
+      id: '/_authed/extraction'
+      path: '/extraction'
+      fullPath: '/extraction'
+      preLoaderRoute: typeof AuthedExtractionRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/models/': {
+      id: '/_authed/models/'
       path: '/'
       fullPath: '/models/'
-      preLoaderRoute: typeof ModelsIndexRouteImport
-      parentRoute: typeof ModelsRoute
+      preLoaderRoute: typeof AuthedModelsIndexRouteImport
+      parentRoute: typeof AuthedModelsRoute
     }
-    '/integrations/': {
-      id: '/integrations/'
+    '/_authed/integrations/': {
+      id: '/_authed/integrations/'
       path: '/'
       fullPath: '/integrations/'
-      preLoaderRoute: typeof IntegrationsIndexRouteImport
-      parentRoute: typeof IntegrationsRoute
+      preLoaderRoute: typeof AuthedIntegrationsIndexRouteImport
+      parentRoute: typeof AuthedIntegrationsRoute
     }
-    '/history/': {
-      id: '/history/'
+    '/_authed/history/': {
+      id: '/_authed/history/'
       path: '/'
       fullPath: '/history/'
-      preLoaderRoute: typeof HistoryIndexRouteImport
-      parentRoute: typeof HistoryRoute
-    }
-    '/models/new': {
-      id: '/models/new'
-      path: '/new'
-      fullPath: '/models/new'
-      preLoaderRoute: typeof ModelsNewRouteImport
-      parentRoute: typeof ModelsRoute
-    }
-    '/models/$modelId': {
-      id: '/models/$modelId'
-      path: '/$modelId'
-      fullPath: '/models/$modelId'
-      preLoaderRoute: typeof ModelsModelIdRouteImport
-      parentRoute: typeof ModelsRoute
-    }
-    '/integrations/new': {
-      id: '/integrations/new'
-      path: '/new'
-      fullPath: '/integrations/new'
-      preLoaderRoute: typeof IntegrationsNewRouteImport
-      parentRoute: typeof IntegrationsRoute
-    }
-    '/history/$extractionId': {
-      id: '/history/$extractionId'
-      path: '/$extractionId'
-      fullPath: '/history/$extractionId'
-      preLoaderRoute: typeof HistoryExtractionIdRouteImport
-      parentRoute: typeof HistoryRoute
-    }
-    '/models/$modelId/': {
-      id: '/models/$modelId/'
-      path: '/'
-      fullPath: '/models/$modelId/'
-      preLoaderRoute: typeof ModelsModelIdIndexRouteImport
-      parentRoute: typeof ModelsModelIdRoute
-    }
-    '/models/$modelId/edit': {
-      id: '/models/$modelId/edit'
-      path: '/edit'
-      fullPath: '/models/$modelId/edit'
-      preLoaderRoute: typeof ModelsModelIdEditRouteImport
-      parentRoute: typeof ModelsModelIdRoute
+      preLoaderRoute: typeof AuthedHistoryIndexRouteImport
+      parentRoute: typeof AuthedHistoryRoute
     }
     '/api/auth/$': {
       id: '/api/auth/$'
@@ -341,89 +312,146 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/models/$modelId/versions/new': {
-      id: '/models/$modelId/versions/new'
+    '/_authed/models/new': {
+      id: '/_authed/models/new'
+      path: '/new'
+      fullPath: '/models/new'
+      preLoaderRoute: typeof AuthedModelsNewRouteImport
+      parentRoute: typeof AuthedModelsRoute
+    }
+    '/_authed/models/$modelId': {
+      id: '/_authed/models/$modelId'
+      path: '/$modelId'
+      fullPath: '/models/$modelId'
+      preLoaderRoute: typeof AuthedModelsModelIdRouteImport
+      parentRoute: typeof AuthedModelsRoute
+    }
+    '/_authed/integrations/new': {
+      id: '/_authed/integrations/new'
+      path: '/new'
+      fullPath: '/integrations/new'
+      preLoaderRoute: typeof AuthedIntegrationsNewRouteImport
+      parentRoute: typeof AuthedIntegrationsRoute
+    }
+    '/_authed/history/$extractionId': {
+      id: '/_authed/history/$extractionId'
+      path: '/$extractionId'
+      fullPath: '/history/$extractionId'
+      preLoaderRoute: typeof AuthedHistoryExtractionIdRouteImport
+      parentRoute: typeof AuthedHistoryRoute
+    }
+    '/_authed/models/$modelId/': {
+      id: '/_authed/models/$modelId/'
+      path: '/'
+      fullPath: '/models/$modelId/'
+      preLoaderRoute: typeof AuthedModelsModelIdIndexRouteImport
+      parentRoute: typeof AuthedModelsModelIdRoute
+    }
+    '/_authed/models/$modelId/edit': {
+      id: '/_authed/models/$modelId/edit'
+      path: '/edit'
+      fullPath: '/models/$modelId/edit'
+      preLoaderRoute: typeof AuthedModelsModelIdEditRouteImport
+      parentRoute: typeof AuthedModelsModelIdRoute
+    }
+    '/_authed/models/$modelId/versions/new': {
+      id: '/_authed/models/$modelId/versions/new'
       path: '/versions/new'
       fullPath: '/models/$modelId/versions/new'
-      preLoaderRoute: typeof ModelsModelIdVersionsNewRouteImport
-      parentRoute: typeof ModelsModelIdRoute
+      preLoaderRoute: typeof AuthedModelsModelIdVersionsNewRouteImport
+      parentRoute: typeof AuthedModelsModelIdRoute
     }
-    '/models/$modelId/versions/$versionId': {
-      id: '/models/$modelId/versions/$versionId'
+    '/_authed/models/$modelId/versions/$versionId': {
+      id: '/_authed/models/$modelId/versions/$versionId'
       path: '/versions/$versionId'
       fullPath: '/models/$modelId/versions/$versionId'
-      preLoaderRoute: typeof ModelsModelIdVersionsVersionIdRouteImport
-      parentRoute: typeof ModelsModelIdRoute
+      preLoaderRoute: typeof AuthedModelsModelIdVersionsVersionIdRouteImport
+      parentRoute: typeof AuthedModelsModelIdRoute
     }
   }
 }
 
-interface HistoryRouteChildren {
-  HistoryExtractionIdRoute: typeof HistoryExtractionIdRoute
-  HistoryIndexRoute: typeof HistoryIndexRoute
+interface AuthedHistoryRouteChildren {
+  AuthedHistoryExtractionIdRoute: typeof AuthedHistoryExtractionIdRoute
+  AuthedHistoryIndexRoute: typeof AuthedHistoryIndexRoute
 }
 
-const HistoryRouteChildren: HistoryRouteChildren = {
-  HistoryExtractionIdRoute: HistoryExtractionIdRoute,
-  HistoryIndexRoute: HistoryIndexRoute,
+const AuthedHistoryRouteChildren: AuthedHistoryRouteChildren = {
+  AuthedHistoryExtractionIdRoute: AuthedHistoryExtractionIdRoute,
+  AuthedHistoryIndexRoute: AuthedHistoryIndexRoute,
 }
 
-const HistoryRouteWithChildren =
-  HistoryRoute._addFileChildren(HistoryRouteChildren)
-
-interface IntegrationsRouteChildren {
-  IntegrationsNewRoute: typeof IntegrationsNewRoute
-  IntegrationsIndexRoute: typeof IntegrationsIndexRoute
-}
-
-const IntegrationsRouteChildren: IntegrationsRouteChildren = {
-  IntegrationsNewRoute: IntegrationsNewRoute,
-  IntegrationsIndexRoute: IntegrationsIndexRoute,
-}
-
-const IntegrationsRouteWithChildren = IntegrationsRoute._addFileChildren(
-  IntegrationsRouteChildren,
+const AuthedHistoryRouteWithChildren = AuthedHistoryRoute._addFileChildren(
+  AuthedHistoryRouteChildren,
 )
 
-interface ModelsModelIdRouteChildren {
-  ModelsModelIdEditRoute: typeof ModelsModelIdEditRoute
-  ModelsModelIdIndexRoute: typeof ModelsModelIdIndexRoute
-  ModelsModelIdVersionsVersionIdRoute: typeof ModelsModelIdVersionsVersionIdRoute
-  ModelsModelIdVersionsNewRoute: typeof ModelsModelIdVersionsNewRoute
+interface AuthedIntegrationsRouteChildren {
+  AuthedIntegrationsNewRoute: typeof AuthedIntegrationsNewRoute
+  AuthedIntegrationsIndexRoute: typeof AuthedIntegrationsIndexRoute
 }
 
-const ModelsModelIdRouteChildren: ModelsModelIdRouteChildren = {
-  ModelsModelIdEditRoute: ModelsModelIdEditRoute,
-  ModelsModelIdIndexRoute: ModelsModelIdIndexRoute,
-  ModelsModelIdVersionsVersionIdRoute: ModelsModelIdVersionsVersionIdRoute,
-  ModelsModelIdVersionsNewRoute: ModelsModelIdVersionsNewRoute,
+const AuthedIntegrationsRouteChildren: AuthedIntegrationsRouteChildren = {
+  AuthedIntegrationsNewRoute: AuthedIntegrationsNewRoute,
+  AuthedIntegrationsIndexRoute: AuthedIntegrationsIndexRoute,
 }
 
-const ModelsModelIdRouteWithChildren = ModelsModelIdRoute._addFileChildren(
-  ModelsModelIdRouteChildren,
+const AuthedIntegrationsRouteWithChildren =
+  AuthedIntegrationsRoute._addFileChildren(AuthedIntegrationsRouteChildren)
+
+interface AuthedModelsModelIdRouteChildren {
+  AuthedModelsModelIdEditRoute: typeof AuthedModelsModelIdEditRoute
+  AuthedModelsModelIdIndexRoute: typeof AuthedModelsModelIdIndexRoute
+  AuthedModelsModelIdVersionsVersionIdRoute: typeof AuthedModelsModelIdVersionsVersionIdRoute
+  AuthedModelsModelIdVersionsNewRoute: typeof AuthedModelsModelIdVersionsNewRoute
+}
+
+const AuthedModelsModelIdRouteChildren: AuthedModelsModelIdRouteChildren = {
+  AuthedModelsModelIdEditRoute: AuthedModelsModelIdEditRoute,
+  AuthedModelsModelIdIndexRoute: AuthedModelsModelIdIndexRoute,
+  AuthedModelsModelIdVersionsVersionIdRoute:
+    AuthedModelsModelIdVersionsVersionIdRoute,
+  AuthedModelsModelIdVersionsNewRoute: AuthedModelsModelIdVersionsNewRoute,
+}
+
+const AuthedModelsModelIdRouteWithChildren =
+  AuthedModelsModelIdRoute._addFileChildren(AuthedModelsModelIdRouteChildren)
+
+interface AuthedModelsRouteChildren {
+  AuthedModelsModelIdRoute: typeof AuthedModelsModelIdRouteWithChildren
+  AuthedModelsNewRoute: typeof AuthedModelsNewRoute
+  AuthedModelsIndexRoute: typeof AuthedModelsIndexRoute
+}
+
+const AuthedModelsRouteChildren: AuthedModelsRouteChildren = {
+  AuthedModelsModelIdRoute: AuthedModelsModelIdRouteWithChildren,
+  AuthedModelsNewRoute: AuthedModelsNewRoute,
+  AuthedModelsIndexRoute: AuthedModelsIndexRoute,
+}
+
+const AuthedModelsRouteWithChildren = AuthedModelsRoute._addFileChildren(
+  AuthedModelsRouteChildren,
 )
 
-interface ModelsRouteChildren {
-  ModelsModelIdRoute: typeof ModelsModelIdRouteWithChildren
-  ModelsNewRoute: typeof ModelsNewRoute
-  ModelsIndexRoute: typeof ModelsIndexRoute
+interface AuthedRouteChildren {
+  AuthedExtractionRoute: typeof AuthedExtractionRoute
+  AuthedHistoryRoute: typeof AuthedHistoryRouteWithChildren
+  AuthedIntegrationsRoute: typeof AuthedIntegrationsRouteWithChildren
+  AuthedModelsRoute: typeof AuthedModelsRouteWithChildren
 }
 
-const ModelsRouteChildren: ModelsRouteChildren = {
-  ModelsModelIdRoute: ModelsModelIdRouteWithChildren,
-  ModelsNewRoute: ModelsNewRoute,
-  ModelsIndexRoute: ModelsIndexRoute,
+const AuthedRouteChildren: AuthedRouteChildren = {
+  AuthedExtractionRoute: AuthedExtractionRoute,
+  AuthedHistoryRoute: AuthedHistoryRouteWithChildren,
+  AuthedIntegrationsRoute: AuthedIntegrationsRouteWithChildren,
+  AuthedModelsRoute: AuthedModelsRouteWithChildren,
 }
 
-const ModelsRouteWithChildren =
-  ModelsRoute._addFileChildren(ModelsRouteChildren)
+const AuthedRouteWithChildren =
+  AuthedRoute._addFileChildren(AuthedRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  ExtractionRoute: ExtractionRoute,
-  HistoryRoute: HistoryRouteWithChildren,
-  IntegrationsRoute: IntegrationsRouteWithChildren,
-  ModelsRoute: ModelsRouteWithChildren,
+  AuthedRoute: AuthedRouteWithChildren,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport

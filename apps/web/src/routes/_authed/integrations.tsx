@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/integrations")({
+export const Route = createFileRoute("/_authed/integrations")({
   component: IntegrationsLayout,
 });
 

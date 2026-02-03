@@ -1,21 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, History, Sparkles } from "lucide-react";
+import { HistoryListSkeleton } from "@/components/skeletons/history-skeletons";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/date";
-import { fetchExtractions } from "@/lib/extractions-queries";
 import type { ExtractionSummary } from "@/lib/extractions-types";
 import { LLM_MODELS } from "@/lib/llm-models";
-import { requireUser } from "@/lib/route-guards";
-
-export const Route = createFileRoute("/history/")({
+import { useHistoryQuery, usePrefetchExtraction } from "@/lib/query-hooks";
+export const Route = createFileRoute("/_authed/history/")({
   component: HistoryPage,
-  loader: async () => {
-    return fetchExtractions();
-  },
-  beforeLoad: async () => {
-    const user = await requireUser();
-    return { user };
-  },
 });
 
 function getStatusStyles(status: ExtractionSummary["status"]) {
@@ -29,7 +21,9 @@ function getStatusStyles(status: ExtractionSummary["status"]) {
 }
 
 function HistoryPage() {
-  const runs = (Route.useLoaderData() || []) as ExtractionSummary[];
+  const { data, isLoading } = useHistoryQuery();
+  const prefetchExtraction = usePrefetchExtraction();
+  const runs = (data || []) as unknown as ExtractionSummary[];
 
   return (
     <div className="min-h-screen bg-background pt-20 pb-16">
@@ -55,7 +49,9 @@ function HistoryPage() {
           </Button>
         </div>
 
-        {runs.length === 0 ? (
+        {isLoading ? (
+          <HistoryListSkeleton />
+        ) : runs.length === 0 ? (
           <div className="rounded-lg bg-card/40 p-10 text-center shadow-sm ring-1 ring-border/40">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
               <div className="h-8 w-8 rounded-full bg-primary/20" />
@@ -108,6 +104,8 @@ function HistoryPage() {
                         <Link
                           to="/history/$extractionId"
                           params={{ extractionId: run.id }}
+                          preload="intent"
+                          onMouseEnter={() => prefetchExtraction(run.id)}
                           aria-label={`View extraction ${run.id}`}
                         >
                           <ArrowRight className="h-4 w-4" />

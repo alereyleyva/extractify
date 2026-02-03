@@ -3,12 +3,12 @@ import { useServerFn } from "@tanstack/react-start";
 import { Globe, PlugZap, PlusCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { updateIntegrationTarget } from "@/functions/integrations";
 import { getErrorMessage } from "@/lib/error-handling";
 import type { IntegrationTarget } from "@/lib/integrations/types";
 import { fetchIntegrationTargets } from "@/lib/integrations-queries";
 import { requireUser } from "@/lib/route-guards";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/integrations/")({
   component: IntegrationsPage,
@@ -66,61 +66,77 @@ function IntegrationsPage() {
             {targets.length === 0 ? "No integrations yet" : "Your integrations"}
           </div>
           {targets.length === 0 ? (
-            <Card className="border-0 bg-card/40 shadow-sm ring-1 ring-border/40">
-              <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <PlugZap className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="font-semibold">No integrations yet</p>
-                  <p className="text-muted-foreground text-sm">
-                    Create a webhook to receive extraction results.
-                  </p>
-                </div>
-                <Button asChild>
-                  <Link to="/integrations/new">
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Create integration
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
+            <div className="rounded-2xl border border-border/60 border-dashed bg-card/30 p-10 text-center shadow-sm">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <PlugZap className="h-5 w-5" />
+              </div>
+              <div className="mt-4">
+                <p className="font-semibold">No integrations yet</p>
+                <p className="mt-1 text-muted-foreground text-sm">
+                  Create a webhook to receive extraction results.
+                </p>
+              </div>
+              <Button asChild className="mt-5">
+                <Link to="/integrations/new">
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Create integration
+                </Link>
+              </Button>
+            </div>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2">
-              {targets.map((target) => (
-                <Card
-                  key={target.id}
-                  className="border-0 bg-card/40 shadow-sm ring-1 ring-border/40"
-                >
-                  <CardContent className="flex h-full flex-col justify-between gap-4 py-6">
-                    <div>
-                      <p className="font-semibold">{target.name}</p>
-                      <p className="text-muted-foreground text-xs">
-                        {target.type.toUpperCase()}
-                        {target.config.method
-                          ? ` · ${target.config.method}`
-                          : ""}
-                      </p>
+            <div className="overflow-hidden rounded-2xl border border-border/60 bg-card/40 shadow-sm">
+              <div className="divide-y divide-border/40">
+                {targets.map((target) => (
+                  <div
+                    key={target.id}
+                    className="flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-medium">{target.name}</p>
+                        <span className="inline-flex items-center gap-2 text-muted-foreground text-xs">
+                          <span
+                            className={cn(
+                              "h-2 w-2 rounded-full",
+                              target.enabled
+                                ? "bg-emerald-500"
+                                : "bg-muted-foreground/40",
+                            )}
+                          />
+                          {target.enabled ? "Enabled" : "Disabled"}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 text-muted-foreground text-xs">
+                        <span className="rounded-full border border-border/60 px-2 py-0.5">
+                          {target.type.toUpperCase()}
+                        </span>
+                        {target.config.method && (
+                          <span className="rounded-full border border-border/60 px-2 py-0.5">
+                            {target.config.method}
+                          </span>
+                        )}
+                        {target.hasSecret && (
+                          <span className="rounded-full border border-border/60 px-2 py-0.5">
+                            Signing secret
+                          </span>
+                        )}
+                      </div>
                       {target.config.url && (
-                        <p className="mt-1 break-all text-muted-foreground text-xs">
+                        <p className="break-all text-muted-foreground text-xs">
                           {target.config.url}
-                        </p>
-                      )}
-                      {target.hasSecret && (
-                        <p className="mt-1 text-muted-foreground text-xs">
-                          Signing secret set
                         </p>
                       )}
                     </div>
                     <Button
+                      size="sm"
                       variant={target.enabled ? "outline" : "default"}
                       onClick={() => handleToggle(target)}
                     >
                       {target.enabled ? "Disable" : "Enable"}
                     </Button>
-                  </CardContent>
-                </Card>
-              ))}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

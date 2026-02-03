@@ -408,7 +408,7 @@ function JSONView({ results }: { results: Record<string, unknown> }) {
   const jsonString = JSON.stringify(cleanedResults, null, 2);
 
   return (
-    <div className="max-h-[600px] overflow-hidden rounded-lg bg-muted/50">
+    <div className="max-h-[600px] overflow-auto rounded-lg bg-muted/50">
       <SyntaxHighlighter
         language="json"
         style={vscDarkPlus}

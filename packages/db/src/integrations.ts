@@ -72,6 +72,20 @@ export async function listIntegrationTargetsForOwner(ownerId: string) {
   });
 }
 
+export async function getIntegrationTargetForOwner(
+  ownerId: string,
+  targetId: string,
+) {
+  const target = await db.query.integrationTarget.findFirst({
+    where: and(
+      eq(integrationTarget.ownerId, ownerId),
+      eq(integrationTarget.id, targetId),
+    ),
+  });
+
+  return target ?? null;
+}
+
 export async function updateIntegrationTargetForOwner(input: {
   ownerId: string;
   targetId: string;
@@ -109,6 +123,23 @@ export async function updateIntegrationTargetForOwner(input: {
     .returning();
 
   return updated ?? null;
+}
+
+export async function deleteIntegrationTargetForOwner(
+  ownerId: string,
+  targetId: string,
+) {
+  const [deleted] = await db
+    .delete(integrationTarget)
+    .where(
+      and(
+        eq(integrationTarget.id, targetId),
+        eq(integrationTarget.ownerId, ownerId),
+      ),
+    )
+    .returning();
+
+  return Boolean(deleted);
 }
 
 export async function createIntegrationDeliveries(

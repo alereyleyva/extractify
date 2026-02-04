@@ -25,6 +25,7 @@ import { Route as AuthedIntegrationsNewRouteImport } from './routes/_authed/inte
 import { Route as AuthedHistoryExtractionIdRouteImport } from './routes/_authed/history/$extractionId'
 import { Route as AuthedModelsModelIdIndexRouteImport } from './routes/_authed/models/$modelId/index'
 import { Route as AuthedModelsModelIdEditRouteImport } from './routes/_authed/models/$modelId/edit'
+import { Route as AuthedIntegrationsIntegrationIdEditRouteImport } from './routes/_authed/integrations/$integrationId/edit'
 import { Route as AuthedModelsModelIdVersionsNewRouteImport } from './routes/_authed/models/$modelId/versions/new'
 import { Route as AuthedModelsModelIdVersionsVersionIdRouteImport } from './routes/_authed/models/$modelId/versions/$versionId'
 
@@ -109,6 +110,12 @@ const AuthedModelsModelIdEditRoute = AuthedModelsModelIdEditRouteImport.update({
   path: '/edit',
   getParentRoute: () => AuthedModelsModelIdRoute,
 } as any)
+const AuthedIntegrationsIntegrationIdEditRoute =
+  AuthedIntegrationsIntegrationIdEditRouteImport.update({
+    id: '/$integrationId/edit',
+    path: '/$integrationId/edit',
+    getParentRoute: () => AuthedIntegrationsRoute,
+  } as any)
 const AuthedModelsModelIdVersionsNewRoute =
   AuthedModelsModelIdVersionsNewRouteImport.update({
     id: '/versions/new',
@@ -136,6 +143,7 @@ export interface FileRoutesByFullPath {
   '/history/': typeof AuthedHistoryIndexRoute
   '/integrations/': typeof AuthedIntegrationsIndexRoute
   '/models/': typeof AuthedModelsIndexRoute
+  '/integrations/$integrationId/edit': typeof AuthedIntegrationsIntegrationIdEditRoute
   '/models/$modelId/edit': typeof AuthedModelsModelIdEditRoute
   '/models/$modelId/': typeof AuthedModelsModelIdIndexRoute
   '/models/$modelId/versions/$versionId': typeof AuthedModelsModelIdVersionsVersionIdRoute
@@ -151,6 +159,7 @@ export interface FileRoutesByTo {
   '/history': typeof AuthedHistoryIndexRoute
   '/integrations': typeof AuthedIntegrationsIndexRoute
   '/models': typeof AuthedModelsIndexRoute
+  '/integrations/$integrationId/edit': typeof AuthedIntegrationsIntegrationIdEditRoute
   '/models/$modelId/edit': typeof AuthedModelsModelIdEditRoute
   '/models/$modelId': typeof AuthedModelsModelIdIndexRoute
   '/models/$modelId/versions/$versionId': typeof AuthedModelsModelIdVersionsVersionIdRoute
@@ -172,6 +181,7 @@ export interface FileRoutesById {
   '/_authed/history/': typeof AuthedHistoryIndexRoute
   '/_authed/integrations/': typeof AuthedIntegrationsIndexRoute
   '/_authed/models/': typeof AuthedModelsIndexRoute
+  '/_authed/integrations/$integrationId/edit': typeof AuthedIntegrationsIntegrationIdEditRoute
   '/_authed/models/$modelId/edit': typeof AuthedModelsModelIdEditRoute
   '/_authed/models/$modelId/': typeof AuthedModelsModelIdIndexRoute
   '/_authed/models/$modelId/versions/$versionId': typeof AuthedModelsModelIdVersionsVersionIdRoute
@@ -193,6 +203,7 @@ export interface FileRouteTypes {
     | '/history/'
     | '/integrations/'
     | '/models/'
+    | '/integrations/$integrationId/edit'
     | '/models/$modelId/edit'
     | '/models/$modelId/'
     | '/models/$modelId/versions/$versionId'
@@ -208,6 +219,7 @@ export interface FileRouteTypes {
     | '/history'
     | '/integrations'
     | '/models'
+    | '/integrations/$integrationId/edit'
     | '/models/$modelId/edit'
     | '/models/$modelId'
     | '/models/$modelId/versions/$versionId'
@@ -228,6 +240,7 @@ export interface FileRouteTypes {
     | '/_authed/history/'
     | '/_authed/integrations/'
     | '/_authed/models/'
+    | '/_authed/integrations/$integrationId/edit'
     | '/_authed/models/$modelId/edit'
     | '/_authed/models/$modelId/'
     | '/_authed/models/$modelId/versions/$versionId'
@@ -354,6 +367,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedModelsModelIdEditRouteImport
       parentRoute: typeof AuthedModelsModelIdRoute
     }
+    '/_authed/integrations/$integrationId/edit': {
+      id: '/_authed/integrations/$integrationId/edit'
+      path: '/$integrationId/edit'
+      fullPath: '/integrations/$integrationId/edit'
+      preLoaderRoute: typeof AuthedIntegrationsIntegrationIdEditRouteImport
+      parentRoute: typeof AuthedIntegrationsRoute
+    }
     '/_authed/models/$modelId/versions/new': {
       id: '/_authed/models/$modelId/versions/new'
       path: '/versions/new'
@@ -388,11 +408,14 @@ const AuthedHistoryRouteWithChildren = AuthedHistoryRoute._addFileChildren(
 interface AuthedIntegrationsRouteChildren {
   AuthedIntegrationsNewRoute: typeof AuthedIntegrationsNewRoute
   AuthedIntegrationsIndexRoute: typeof AuthedIntegrationsIndexRoute
+  AuthedIntegrationsIntegrationIdEditRoute: typeof AuthedIntegrationsIntegrationIdEditRoute
 }
 
 const AuthedIntegrationsRouteChildren: AuthedIntegrationsRouteChildren = {
   AuthedIntegrationsNewRoute: AuthedIntegrationsNewRoute,
   AuthedIntegrationsIndexRoute: AuthedIntegrationsIndexRoute,
+  AuthedIntegrationsIntegrationIdEditRoute:
+    AuthedIntegrationsIntegrationIdEditRoute,
 }
 
 const AuthedIntegrationsRouteWithChildren =

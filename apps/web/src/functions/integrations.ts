@@ -1,5 +1,7 @@
 import {
   createIntegrationTarget,
+  deleteIntegrationTargetForOwner,
+  getIntegrationTargetForOwner,
   listIntegrationTargetsForOwner,
   updateIntegrationTargetForOwner,
 } from "@extractify/db/integrations";
@@ -32,39 +34,45 @@ const UpdateIntegrationSchema = z
     message: "No updates provided.",
   });
 
+const GetIntegrationSchema = z.object({
+  targetId: z.string().min(1),
+});
+
+const UpdateWebhookIntegrationSchema = z
+  .object({
+    targetId: z.string().min(1),
+    name: z.string().min(1).optional(),
+    enabled: z.boolean().optional(),
+    url: z.string().url().optional(),
+    method: z.enum(["POST", "PUT", "PATCH"]).optional(),
+    secret: z.string().optional(),
+    clearSecret: z.boolean().optional(),
+  })
+  .refine(
+    (data) =>
+      data.name !== undefined ||
+      data.enabled !== undefined ||
+      data.url !== undefined ||
+      data.method !== undefined ||
+      data.secret !== undefined ||
+      data.clearSecret !== undefined,
+    { message: "No updates provided." },
+  );
+
+const DeleteIntegrationSchema = z.object({
+  targetId: z.string().min(1),
+});
+
 type IntegrationTargetResponse = IntegrationTarget;
 
 const EMPTY_CONFIG: IntegrationTargetConfig = {};
 
-export const listIntegrationTargets = createServerFn({ method: "GET" }).handler(
-  async (): Promise<IntegrationTargetResponse[]> => {
-    const ownerId = await requireUserId();
-    const targets = await listIntegrationTargetsForOwner(ownerId);
-
-    return targets.map((target) => {
-      if (target.type === "webhook") {
-        const parsed = WebhookConfigSchema.safeParse(target.config);
-        if (!parsed.success) {
-          return {
-            id: target.id,
-            name: target.name,
-            type: target.type,
-            enabled: target.enabled,
-            config: EMPTY_CONFIG,
-            hasSecret: false,
-          };
-        }
-        const { secret, ...safeConfig } = parsed.data;
-        return {
-          id: target.id,
-          name: target.name,
-          type: target.type,
-          enabled: target.enabled,
-          config: safeConfig,
-          hasSecret: Boolean(secret),
-        };
-      }
-
+function mapIntegrationTarget(
+  target: Awaited<ReturnType<typeof listIntegrationTargetsForOwner>>[number],
+): IntegrationTargetResponse {
+  if (target.type === "webhook") {
+    const parsed = WebhookConfigSchema.safeParse(target.config);
+    if (!parsed.success) {
       return {
         id: target.id,
         name: target.name,
@@ -73,9 +81,49 @@ export const listIntegrationTargets = createServerFn({ method: "GET" }).handler(
         config: EMPTY_CONFIG,
         hasSecret: false,
       };
-    });
+    }
+    const { secret, ...safeConfig } = parsed.data;
+    return {
+      id: target.id,
+      name: target.name,
+      type: target.type,
+      enabled: target.enabled,
+      config: safeConfig,
+      hasSecret: Boolean(secret),
+    };
+  }
+
+  return {
+    id: target.id,
+    name: target.name,
+    type: target.type,
+    enabled: target.enabled,
+    config: EMPTY_CONFIG,
+    hasSecret: false,
+  };
+}
+
+export const listIntegrationTargets = createServerFn({ method: "GET" }).handler(
+  async (): Promise<IntegrationTargetResponse[]> => {
+    const ownerId = await requireUserId();
+    const targets = await listIntegrationTargetsForOwner(ownerId);
+
+    return targets.map((target) => mapIntegrationTarget(target));
   },
 );
+
+export const getIntegrationTarget = createServerFn({ method: "POST" })
+  .inputValidator(GetIntegrationSchema)
+  .handler(async ({ data }): Promise<IntegrationTargetResponse> => {
+    const ownerId = await requireUserId();
+    const target = await getIntegrationTargetForOwner(ownerId, data.targetId);
+
+    if (!target) {
+      throw new Error("Integration not found");
+    }
+
+    return mapIntegrationTarget(target);
+  });
 
 export const createWebhookIntegration = createServerFn({ method: "POST" })
   .inputValidator(CreateWebhookIntegrationSchema)
@@ -109,6 +157,67 @@ export const createWebhookIntegration = createServerFn({ method: "POST" })
     },
   );
 
+export const updateWebhookIntegration = createServerFn({ method: "POST" })
+  .inputValidator(UpdateWebhookIntegrationSchema)
+  .handler(async ({ data }) => {
+    const ownerId = await requireUserId();
+    const target = await getIntegrationTargetForOwner(ownerId, data.targetId);
+
+    if (!target) {
+      throw new Error("Integration not found");
+    }
+
+    if (target.type !== "webhook") {
+      throw new Error("Only webhook integrations can be updated");
+    }
+
+    const currentConfig = WebhookConfigSchema.safeParse(target.config);
+    if (!currentConfig.success && !data.url) {
+      throw new Error("Integration config is invalid");
+    }
+
+    const fallbackConfig = {
+      url: data.url ?? "",
+      method: data.method ?? "POST",
+      headers: {},
+      timeoutMs: 10_000,
+      secret: null,
+    };
+
+    const resolvedConfig = currentConfig.success
+      ? currentConfig.data
+      : fallbackConfig;
+
+    let nextSecret = resolvedConfig.secret ?? null;
+    if (data.clearSecret) {
+      nextSecret = null;
+    } else if (data.secret) {
+      nextSecret = encryptSecret(data.secret);
+    }
+
+    const nextConfig = WebhookConfigSchema.parse({
+      url: data.url ?? resolvedConfig.url,
+      method: data.method ?? resolvedConfig.method,
+      headers: resolvedConfig.headers,
+      timeoutMs: resolvedConfig.timeoutMs,
+      secret: nextSecret,
+    });
+
+    const updated = await updateIntegrationTargetForOwner({
+      ownerId,
+      targetId: data.targetId,
+      name: data.name,
+      enabled: data.enabled,
+      config: nextConfig,
+    });
+
+    if (!updated) {
+      throw new Error("Integration not found");
+    }
+
+    return { success: true };
+  });
+
 export const updateIntegrationTarget = createServerFn({ method: "POST" })
   .inputValidator(UpdateIntegrationSchema)
   .handler(
@@ -128,3 +237,19 @@ export const updateIntegrationTarget = createServerFn({ method: "POST" })
       return { success: true };
     },
   );
+
+export const deleteIntegrationTarget = createServerFn({ method: "POST" })
+  .inputValidator(DeleteIntegrationSchema)
+  .handler(async ({ data }) => {
+    const ownerId = await requireUserId();
+    const deleted = await deleteIntegrationTargetForOwner(
+      ownerId,
+      data.targetId,
+    );
+
+    if (!deleted) {
+      throw new Error("Integration not found");
+    }
+
+    return { success: true };
+  });

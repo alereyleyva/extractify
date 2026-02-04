@@ -7,4 +7,6 @@ export const queryKeys = {
   history: ["history"] as const,
   extraction: (extractionId: string) => ["history", extractionId] as const,
   integrations: ["integrations"] as const,
+  integration: (integrationId: string) =>
+    ["integrations", integrationId] as const,
 };

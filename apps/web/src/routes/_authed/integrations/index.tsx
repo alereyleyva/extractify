@@ -4,8 +4,22 @@ import { useServerFn } from "@tanstack/react-start";
 import { Globe, PlugZap, PlusCircle } from "lucide-react";
 import { toast } from "sonner";
 import { IntegrationsListSkeleton } from "@/components/skeletons/integrations-skeletons";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { updateIntegrationTarget } from "@/functions/integrations";
+import {
+  deleteIntegrationTarget,
+  updateIntegrationTarget,
+} from "@/functions/integrations";
 import { getErrorMessage } from "@/lib/error-handling";
 import type { IntegrationTarget } from "@/lib/integrations/types";
 import { useIntegrationsQuery } from "@/lib/query-hooks";
@@ -21,6 +35,7 @@ function IntegrationsPage() {
   const { data, isLoading } = useIntegrationsQuery();
   const targets = (data || []) as unknown as IntegrationTarget[];
   const updateIntegrationTargetFn = useServerFn(updateIntegrationTarget);
+  const deleteIntegrationTargetFn = useServerFn(deleteIntegrationTarget);
 
   const handleToggle = async (target: IntegrationTarget) => {
     try {
@@ -30,6 +45,16 @@ function IntegrationsPage() {
           enabled: !target.enabled,
         },
       });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.integrations });
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    }
+  };
+
+  const handleDelete = async (target: IntegrationTarget) => {
+    try {
+      await deleteIntegrationTargetFn({ data: { targetId: target.id } });
+      toast.success("Integration deleted");
       await queryClient.invalidateQueries({ queryKey: queryKeys.integrations });
     } catch (error) {
       toast.error(getErrorMessage(error));
@@ -125,13 +150,54 @@ function IntegrationsPage() {
                         </p>
                       )}
                     </div>
-                    <Button
-                      size="sm"
-                      variant={target.enabled ? "outline" : "default"}
-                      onClick={() => handleToggle(target)}
-                    >
-                      {target.enabled ? "Disable" : "Enable"}
-                    </Button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button asChild size="sm" variant="ghost">
+                        <Link
+                          to="/integrations/$integrationId/edit"
+                          params={{ integrationId: target.id }}
+                        >
+                          Edit
+                        </Link>
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button size="sm" variant="destructive">
+                            Delete
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              Delete integration
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will permanently delete{" "}
+                              <span className="font-medium text-foreground">
+                                {target.name}
+                              </span>{" "}
+                              and its delivery history. This action cannot be
+                              undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              className="bg-destructive text-white hover:bg-destructive/90"
+                              onClick={() => handleDelete(target)}
+                            >
+                              Delete integration
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                      <Button
+                        size="sm"
+                        variant={target.enabled ? "outline" : "default"}
+                        onClick={() => handleToggle(target)}
+                      >
+                        {target.enabled ? "Disable" : "Enable"}
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>

@@ -1,7 +1,10 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getCurrentUser } from "@/functions/get-current-user";
 import { fetchExtraction, fetchExtractions } from "@/lib/extractions-queries";
-import { fetchIntegrationTargets } from "@/lib/integrations-queries";
+import {
+  fetchIntegrationTarget,
+  fetchIntegrationTargets,
+} from "@/lib/integrations-queries";
 import {
   fetchActiveModelVersion,
   fetchModel,
@@ -63,6 +66,16 @@ export function useIntegrationsQuery() {
   return useQuery({
     queryKey: queryKeys.integrations,
     queryFn: fetchIntegrationTargets,
+  });
+}
+
+export function useIntegrationQuery(integrationId: string | undefined | null) {
+  return useQuery({
+    queryKey: integrationId
+      ? queryKeys.integration(integrationId)
+      : queryKeys.integrations,
+    queryFn: () => fetchIntegrationTarget(integrationId || ""),
+    enabled: !!integrationId,
   });
 }
 

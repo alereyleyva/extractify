@@ -1,4 +1,4 @@
-import { PDFParse } from "pdf-parse";
+import { extractText } from "unpdf";
 import { type ExtractionStrategy, SUPPORTED_PDF_TYPES } from "./types";
 
 export class PDFExtractionStrategy implements ExtractionStrategy {
@@ -9,9 +9,8 @@ export class PDFExtractionStrategy implements ExtractionStrategy {
   }
 
   async extractText(fileData: ArrayBuffer, _fileName: string): Promise<string> {
-    const parser = new PDFParse({ data: Buffer.from(fileData) });
-    const textResult = await parser.getText();
+    const { text } = await extractText(fileData, { mergePages: true });
 
-    return textResult.text;
+    return text;
   }
 }

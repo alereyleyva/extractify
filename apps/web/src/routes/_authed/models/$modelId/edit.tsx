@@ -5,6 +5,17 @@ import { ArrowLeft, Save, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ModelEditSkeleton } from "@/components/skeletons/models-skeletons";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -77,12 +88,6 @@ function ModelEditPage() {
     if (!model) {
       return;
     }
-    const confirmed = window.confirm(
-      "Delete this model and all versions? This cannot be undone.",
-    );
-    if (!confirmed) {
-      return;
-    }
     try {
       await deleteModelFn({ data: { modelId: model.id } });
       toast.success("Model deleted");
@@ -127,14 +132,35 @@ function ModelEditPage() {
               Back to model
             </Link>
           </Button>
-          <Button
-            variant="ghost"
-            className="text-destructive"
-            onClick={handleDelete}
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Delete model
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="ghost" className="text-destructive">
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete model
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete model</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete{" "}
+                  <span className="font-medium text-foreground">
+                    {model.name}
+                  </span>{" "}
+                  and all of its versions. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-white hover:bg-destructive/90"
+                  onClick={handleDelete}
+                >
+                  Delete model
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
 
         <Card className="border-0 bg-card/40 shadow-sm ring-1 ring-border/40">

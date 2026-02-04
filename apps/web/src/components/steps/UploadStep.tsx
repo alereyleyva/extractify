@@ -1,5 +1,5 @@
 import { ArrowRight } from "lucide-react";
-import { PDFUpload } from "@/components/PDFUpload";
+import { FileUpload } from "@/components/FileUpload";
 import { Button } from "@/components/ui/button";
 
 export function UploadStep({
@@ -24,12 +24,12 @@ export function UploadStep({
           </span>
         </h2>
         <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-          Upload up to 10 PDF or image files to extract data from
+          Upload up to 10 PDF, image, or audio files to extract data from
         </p>
       </div>
       <div className="flex justify-center">
         <div className="w-full max-w-2xl">
-          <PDFUpload
+          <FileUpload
             onFileSelect={onFileSelect}
             onRemoveFile={onRemoveFile}
             onRemoveAll={onRemoveAll}

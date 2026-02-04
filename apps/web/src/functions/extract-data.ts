@@ -17,6 +17,7 @@ import { generateText, Output } from "ai";
 import { z } from "zod";
 import { getErrorMessage } from "@/lib/error-handling";
 import { ExtractionStrategyFactory } from "@/lib/extractors/factory";
+import { SUPPORTED_FILE_TYPES } from "@/lib/extractors/types";
 import { deliverWebhookTargetsForExtraction } from "@/lib/integrations/deliveries";
 import type { IntegrationDeliveryResult } from "@/lib/integrations/types";
 import {
@@ -32,18 +33,170 @@ const FileInputSchema = z.object({
   fileType: z.string().min(1),
 });
 
-const ExtractDataSchema = z.object({
-  files: z.array(FileInputSchema).min(1).max(10),
-  attributes: AttributeListSchema,
-  llmModelId: z.enum(LLM_MODEL_ID_LIST).default(DEFAULT_LLM_MODEL_ID),
-});
+type ExtractedFile = z.infer<typeof FileInputSchema>;
 
-const ExtractDataFromModelSchema = z.object({
-  modelId: z.string().min(1),
-  files: z.array(FileInputSchema).min(1).max(10),
-  llmModelId: z.enum(LLM_MODEL_ID_LIST).default(DEFAULT_LLM_MODEL_ID),
-  integrationTargetIds: z.array(z.string().min(1)).optional(),
-});
+const MAX_FILES = 10;
+const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
+const MAX_TOTAL_SIZE_BYTES = 200 * 1024 * 1024;
+const MODEL_ID_SCHEMA = z.string().uuid();
+
+function normalizeFileType(fileType: string) {
+  if (fileType === "image/jpg") {
+    return "image/jpeg";
+  }
+  if (fileType === "audio/mp3") {
+    return "audio/mpeg";
+  }
+  if (fileType === "audio/x-m4a") {
+    return "audio/mp4";
+  }
+  if (fileType === "audio/x-wav") {
+    return "audio/wav";
+  }
+  return fileType;
+}
+
+const FILE_TYPE_BY_EXTENSION: Record<string, string> = {
+  pdf: "application/pdf",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  mp3: "audio/mpeg",
+  wav: "audio/wav",
+  m4a: "audio/mp4",
+  mp4: "audio/mp4",
+};
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
+  const kb = bytes / 1024;
+  if (kb < 1024) {
+    return `${kb.toFixed(1)} KB`;
+  }
+  const mb = kb / 1024;
+  return `${mb.toFixed(1)} MB`;
+}
+
+function inferFileType(fileName: string) {
+  const ext = fileName.split(".").pop()?.toLowerCase();
+  if (!ext) {
+    return undefined;
+  }
+  return FILE_TYPE_BY_EXTENSION[ext];
+}
+
+function parseModelId(value: FormDataEntryValue | null) {
+  if (typeof value !== "string") {
+    throw new Error("Model ID is required");
+  }
+  const parsed = MODEL_ID_SCHEMA.safeParse(value.trim());
+  if (!parsed.success) {
+    throw new Error("Invalid model ID");
+  }
+  return parsed.data;
+}
+
+function parseLlmModelId(value: FormDataEntryValue | null): LlmModelId {
+  if (value == null) {
+    return DEFAULT_LLM_MODEL_ID;
+  }
+  if (typeof value !== "string") {
+    throw new Error("Invalid LLM model selection");
+  }
+  if (!LLM_MODEL_ID_LIST.includes(value as LlmModelId)) {
+    throw new Error("Invalid LLM model selection");
+  }
+  return value as LlmModelId;
+}
+
+function parseAttributesFromFormData(formData: FormData) {
+  const rawAttributes = formData.get("attributes");
+  if (typeof rawAttributes !== "string") {
+    throw new Error("Attributes are required");
+  }
+  let parsedJson: unknown;
+  try {
+    parsedJson = JSON.parse(rawAttributes);
+  } catch {
+    throw new Error("Attributes must be valid JSON");
+  }
+  const parsed = AttributeListSchema.safeParse(parsedJson);
+  if (!parsed.success) {
+    throw new Error("Attributes are invalid");
+  }
+  return parsed.data;
+}
+
+function validateFilesFromFormData(formData: FormData): File[] {
+  const fileEntries = formData.getAll("files");
+  if (fileEntries.length === 0) {
+    throw new Error("At least one file is required");
+  }
+  if (fileEntries.length > MAX_FILES) {
+    throw new Error(`Too many files (max ${MAX_FILES})`);
+  }
+
+  const files: File[] = [];
+  let totalSize = 0;
+
+  for (const entry of fileEntries) {
+    if (!(entry instanceof File)) {
+      throw new Error("Invalid file upload");
+    }
+
+    if (entry.size > MAX_FILE_SIZE_BYTES) {
+      throw new Error(
+        `File ${entry.name || "upload"} exceeds ${formatBytes(
+          MAX_FILE_SIZE_BYTES,
+        )}`,
+      );
+    }
+
+    totalSize += entry.size;
+    if (totalSize > MAX_TOTAL_SIZE_BYTES) {
+      throw new Error(
+        `Total upload exceeds ${formatBytes(MAX_TOTAL_SIZE_BYTES)}`,
+      );
+    }
+
+    const inferred = entry.type || inferFileType(entry.name);
+    const normalizedType = normalizeFileType(
+      inferred ?? "application/octet-stream",
+    );
+
+    if (
+      !SUPPORTED_FILE_TYPES.includes(
+        normalizedType as (typeof SUPPORTED_FILE_TYPES)[number],
+      )
+    ) {
+      throw new Error(`Unsupported file type: ${normalizedType}`);
+    }
+    files.push(entry);
+  }
+
+  return files;
+}
+
+async function mapFilesToExtracted(files: File[]): Promise<ExtractedFile[]> {
+  const extracted: ExtractedFile[] = [];
+
+  for (const file of files) {
+    const inferred = file.type || inferFileType(file.name);
+    const normalizedType = normalizeFileType(
+      inferred ?? "application/octet-stream",
+    );
+    const arrayBuffer = await file.arrayBuffer();
+    extracted.push({
+      fileData: arrayBuffer,
+      fileName: file.name || "upload",
+      fileType: normalizedType,
+    });
+  }
+
+  return extracted;
+}
 
 function createNestedFieldSchema(
   attr: z.infer<typeof AttributeSchema>,
@@ -268,20 +421,55 @@ async function runExtraction(input: {
 }
 
 export const extractData = createServerFn({ method: "POST" })
-  .inputValidator(ExtractDataSchema)
+  .inputValidator((data) => {
+    if (!(data instanceof FormData)) {
+      throw new Error("Expected FormData");
+    }
+    const files = validateFilesFromFormData(data);
+    const attributes = parseAttributesFromFormData(data);
+    const llmModelId = parseLlmModelId(data.get("llmModelId"));
+
+    return {
+      files,
+      attributes,
+      llmModelId,
+    };
+  })
   .handler(async ({ data }) => {
     await requireUserId();
+    const files = await mapFilesToExtracted(data.files);
     return runExtraction({
-      files: data.files,
+      files,
       attributes: data.attributes,
       llmModelId: data.llmModelId,
     });
   });
 
 export const extractDataFromModel = createServerFn({ method: "POST" })
-  .inputValidator(ExtractDataFromModelSchema)
+  .inputValidator((data) => {
+    if (!(data instanceof FormData)) {
+      throw new Error("Expected FormData");
+    }
+    const files = validateFilesFromFormData(data);
+    const modelId = parseModelId(data.get("modelId"));
+    const llmModelId = parseLlmModelId(data.get("llmModelId"));
+    const integrationTargetIds = data
+      .getAll("integrationTargetIds")
+      .filter((value): value is string => typeof value === "string")
+      .map((value) => value.trim())
+      .filter(Boolean);
+
+    return {
+      modelId,
+      llmModelId,
+      integrationTargetIds:
+        integrationTargetIds.length > 0 ? integrationTargetIds : undefined,
+      files,
+    };
+  })
   .handler(async ({ data }) => {
     const ownerId = await requireUserId();
+    const files = await mapFilesToExtracted(data.files);
     const activeVersion = await getActiveModelVersionForOwner(
       ownerId,
       data.modelId,
@@ -301,19 +489,19 @@ export const extractDataFromModel = createServerFn({ method: "POST" })
       throw new Error("Unable to create extraction run");
     }
 
-    await createExtractionInputs(
-      extractionRun.id,
-      data.files.map((file, index) => ({
-        fileName: file.fileName,
-        fileType: file.fileType,
-        fileSize: file.fileData.byteLength,
-        sourceOrder: index,
-      })),
-    );
-
     try {
+      await createExtractionInputs(
+        extractionRun.id,
+        files.map((file, index) => ({
+          fileName: file.fileName,
+          fileType: file.fileType,
+          fileSize: file.fileData.byteLength,
+          sourceOrder: index,
+        })),
+      );
+
       const result = await runExtraction({
-        files: data.files,
+        files,
         attributes: activeVersion.attributes,
         llmModelId: data.llmModelId,
       });

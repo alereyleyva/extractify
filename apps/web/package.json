@@ -9,6 +9,8 @@
   },
   "dependencies": {
     "@ai-sdk/amazon-bedrock": "^4.0.12",
+    "@aws-sdk/client-s3": "^3.965.0",
+    "@aws-sdk/client-transcribe": "^3.965.0",
     "@aws-sdk/client-textract": "^3.965.0",
     "@aws-sdk/credential-providers": "^3.965.0",
     "@extractify/auth": "workspace:*",

@@ -1,7 +1,9 @@
+import { AudioExtractionStrategy } from "./audio-extractor";
 import { ImageExtractionStrategy } from "./image-extractor";
 import { PDFExtractionStrategy } from "./pdf-extractor";
 import {
   type ExtractionStrategy,
+  SUPPORTED_AUDIO_TYPES,
   SUPPORTED_IMAGE_TYPES,
   SUPPORTED_PDF_TYPES,
 } from "./types";
@@ -13,6 +15,7 @@ export class ExtractionStrategyFactory {
     this.strategies = [
       new PDFExtractionStrategy(),
       new ImageExtractionStrategy(),
+      new AudioExtractionStrategy(),
     ];
   }
 
@@ -35,6 +38,9 @@ export class ExtractionStrategyFactory {
       }
       if (strategy instanceof ImageExtractionStrategy) {
         return [...SUPPORTED_IMAGE_TYPES];
+      }
+      if (strategy instanceof AudioExtractionStrategy) {
+        return [...SUPPORTED_AUDIO_TYPES];
       }
       return [];
     });

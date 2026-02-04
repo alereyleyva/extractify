@@ -184,19 +184,18 @@ function ExtractionPage() {
     setIntegrationDeliveries([]);
 
     try {
+      const formData = new FormData();
+      formData.append("modelId", selectedModelId);
+      formData.append("llmModelId", selectedLlmModelId);
+      selectedIntegrationIds.forEach((id) => {
+        formData.append("integrationTargetIds", id);
+      });
+      selectedFiles.forEach((file) => {
+        formData.append("files", file, file.name);
+      });
+
       const result = await extractDataFn({
-        data: {
-          modelId: selectedModelId,
-          llmModelId: selectedLlmModelId,
-          integrationTargetIds: selectedIntegrationIds,
-          files: await Promise.all(
-            selectedFiles.map(async (file) => ({
-              fileData: await file.arrayBuffer(),
-              fileName: file.name,
-              fileType: file.type === "image/jpg" ? "image/jpeg" : file.type,
-            })),
-          ),
-        },
+        data: formData,
       });
 
       if (result && typeof result === "object" && "data" in result) {

@@ -1,4 +1,10 @@
-import { FileText, Image as ImageIcon, Upload, X } from "lucide-react";
+import {
+  AudioLines,
+  FileText,
+  Image as ImageIcon,
+  Upload,
+  X,
+} from "lucide-react";
 import { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { Button } from "@/components/ui/button";
@@ -17,6 +23,12 @@ const SUPPORTED_TYPES = {
   "image/jpeg": [".jpg", ".jpeg"],
   "image/png": [".png"],
   "image/jpg": [".jpg"],
+  "audio/mpeg": [".mp3"],
+  "audio/mp3": [".mp3"],
+  "audio/wav": [".wav"],
+  "audio/x-wav": [".wav"],
+  "audio/mp4": [".m4a", ".mp4"],
+  "audio/x-m4a": [".m4a"],
 };
 
 const MAX_FILES = 10;
@@ -28,10 +40,13 @@ function getFileIcon(fileType: string) {
   if (fileType.startsWith("image/")) {
     return ImageIcon;
   }
+  if (fileType.startsWith("audio/")) {
+    return AudioLines;
+  }
   return FileText;
 }
 
-export function PDFUpload({
+export function FileUpload({
   onFileSelect,
   onRemoveFile,
   onRemoveAll,
@@ -85,11 +100,11 @@ export function PDFUpload({
               <p className="mb-2 font-semibold text-lg">
                 {isDragActive
                   ? "Drop your documents here"
-                  : "Upload documents or images"}
+                  : "Upload documents, images, or audio"}
               </p>
               <p className="text-muted-foreground text-sm">
-                Drag and drop up to {MAX_FILES} PDF or image files (JPEG, PNG),
-                or click to browse
+                Drag and drop up to {MAX_FILES} PDF, image, or audio files
+                (JPEG, PNG, MP3, WAV, M4A), or click to browse
               </p>
             </div>
           </div>

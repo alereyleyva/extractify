@@ -107,7 +107,7 @@ export class AudioExtractionStrategy implements ExtractionStrategy {
     const contentType = getContentType(fileName);
     const jobName = `extractify-${crypto.randomUUID()}`;
 
-    console.log("Uploading file to S3...");
+    console.log("[worker] Uploading audio file to S3 for transcription...");
 
     await this.s3Client.send(
       new PutObjectCommand({

@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -45,6 +45,7 @@ export const Route = createFileRoute("/_authed/extraction")({
 type Step = "upload" | "attributes" | "extract" | "results";
 
 function ExtractionPage() {
+  const navigate = useNavigate();
   const { data: modelsData, isLoading: isLoadingModels } = useModelsQuery();
   const { data: integrationTargetsData, isLoading: isLoadingIntegrations } =
     useIntegrationsQuery();
@@ -83,8 +84,6 @@ function ExtractionPage() {
     totalTokens: number;
   } | null>(null);
   const [selectedLlmModelId, setSelectedLlmModelId] =
-    useState<LlmModelId>(DEFAULT_LLM_MODEL_ID);
-  const [lastLlmModelId, setLastLlmModelId] =
     useState<LlmModelId>(DEFAULT_LLM_MODEL_ID);
   const [currentStep, setCurrentStep] = useState<Step>("upload");
   const [hasTouchedIntegrations, setHasTouchedIntegrations] = useState(false);
@@ -198,37 +197,18 @@ function ExtractionPage() {
         data: formData,
       });
 
-      if (result && typeof result === "object" && "data" in result) {
-        setResults(result.data as Record<string, unknown>);
-        if ("modelId" in result && typeof result.modelId === "string") {
-          setLastLlmModelId(result.modelId as LlmModelId);
-        } else {
-          setLastLlmModelId(selectedLlmModelId);
-        }
-        if (
-          "usage" in result &&
-          result.usage &&
-          typeof result.usage === "object" &&
-          "inputTokens" in result.usage &&
-          "outputTokens" in result.usage &&
-          "totalTokens" in result.usage
-        ) {
-          const usageData = result.usage as {
-            inputTokens: number;
-            outputTokens: number;
-            totalTokens: number;
-          };
-          setUsage(usageData);
-        }
-        if (
-          "integrationDeliveries" in result &&
-          Array.isArray(result.integrationDeliveries)
-        ) {
-          setIntegrationDeliveries(
-            result.integrationDeliveries as typeof integrationDeliveries,
-          );
-        }
-        toast.success("Data extracted successfully!");
+      if (
+        result &&
+        typeof result === "object" &&
+        "extractionId" in result &&
+        "status" in result
+      ) {
+        toast.success("Extraction queued! Redirecting to view progress...");
+
+        navigate({
+          to: "/history/$extractionId",
+          params: { extractionId: result.extractionId },
+        });
       }
     } catch (error) {
       toast.error(getErrorMessage(error));
@@ -378,7 +358,7 @@ function ExtractionPage() {
                 results={results}
                 usage={usage}
                 isLoading={isExtracting}
-                modelId={lastLlmModelId}
+                modelId={selectedLlmModelId}
                 integrationDeliveries={integrationDeliveries}
                 onBack={() => setCurrentStep("attributes")}
                 onRetry={() => {

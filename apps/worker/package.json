@@ -1,0 +1,32 @@
+{
+  "name": "worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "start": "bun run src/index.ts",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ai-sdk/amazon-bedrock": "^4.0.12",
+    "@aws-sdk/client-s3": "^3.965.0",
+    "@aws-sdk/client-transcribe": "^3.965.0",
+    "@aws-sdk/client-textract": "^3.965.0",
+    "@aws-sdk/credential-providers": "^3.965.0",
+    "@extractify/db": "workspace:*",
+    "@extractify/env": "workspace:*",
+    "@extractify/queue": "workspace:*",
+    "@extractify/shared": "workspace:*",
+    "ai": "^6.0.24",
+    "pg-boss": "^10.1.5",
+    "unpdf": "^1.4.0",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@extractify/config": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}

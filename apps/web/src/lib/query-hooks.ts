@@ -52,13 +52,17 @@ export function useHistoryQuery() {
   });
 }
 
-export function useExtractionQuery(extractionId: string | undefined | null) {
+export function useExtractionQuery(
+  extractionId: string | undefined | null,
+  options?: { refetchInterval?: number | false },
+) {
   return useQuery({
     queryKey: extractionId
       ? queryKeys.extraction(extractionId)
       : queryKeys.history,
     queryFn: () => fetchExtraction(extractionId || ""),
     enabled: !!extractionId,
+    refetchInterval: options?.refetchInterval,
   });
 }
 

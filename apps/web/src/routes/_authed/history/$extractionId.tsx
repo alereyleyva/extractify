@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AlertTriangle, ArrowLeft, FileText, History } from "lucide-react";
+import { useEffect, useState } from "react";
 import { ExtractionResults } from "@/components/ExtractionResults";
 import { RouteError } from "@/components/route-error";
 import { HistoryDetailSkeleton } from "@/components/skeletons/history-skeletons";
@@ -62,9 +63,18 @@ function getDeliveryStyles(
 
 function HistoryDetailPage() {
   const { extractionId } = Route.useParams();
-  const { data, isLoading, isError, error } = useExtractionQuery(extractionId);
+  const [isPolling, setIsPolling] = useState(true);
+  const { data, isLoading, isError, error } = useExtractionQuery(extractionId, {
+    refetchInterval: isPolling ? 2000 : false,
+  });
   const extraction = data as ExtractionDetail | undefined;
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (extraction && extraction.status !== "processing") {
+      setIsPolling(false);
+    }
+  }, [extraction]);
 
   if (isLoading) {
     return <HistoryDetailSkeleton />;

@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./attribute-model": "./src/attribute-model.ts"
+    "./attribute-model": "./src/attribute-model.ts",
+    "./extraction-schema": "./src/extraction-schema.ts"
   },
   "dependencies": {
     "zod": "catalog:"

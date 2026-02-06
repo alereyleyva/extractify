@@ -32,17 +32,10 @@ export class ExtractionStrategyFactory {
   }
 
   getSupportedTypes(): string[] {
-    return this.strategies.flatMap((strategy) => {
-      if (strategy instanceof PDFExtractionStrategy) {
-        return [...SUPPORTED_PDF_TYPES];
-      }
-      if (strategy instanceof ImageExtractionStrategy) {
-        return [...SUPPORTED_IMAGE_TYPES];
-      }
-      if (strategy instanceof AudioExtractionStrategy) {
-        return [...SUPPORTED_AUDIO_TYPES];
-      }
-      return [];
-    });
+    return [
+      ...SUPPORTED_PDF_TYPES,
+      ...SUPPORTED_IMAGE_TYPES,
+      ...SUPPORTED_AUDIO_TYPES,
+    ];
   }
 }

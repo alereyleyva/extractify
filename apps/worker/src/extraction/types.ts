@@ -17,3 +17,10 @@ export const SUPPORTED_FILE_TYPES = [
   ...SUPPORTED_IMAGE_TYPES,
   ...SUPPORTED_AUDIO_TYPES,
 ] as const;
+
+export type SupportedFileType = (typeof SUPPORTED_FILE_TYPES)[number];
+
+export interface ExtractionStrategy {
+  extractText(fileData: ArrayBuffer, fileName: string): Promise<string>;
+  supports(fileType: string): boolean;
+}

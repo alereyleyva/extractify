@@ -102,6 +102,31 @@ export async function getActiveModelVersionForOwner(
   };
 }
 
+export async function getModelVersionById(versionId: string) {
+  const version = await db.query.attributeModelVersion.findFirst({
+    where: eq(attributeModelVersion.id, versionId),
+    with: {
+      model: {
+        columns: {
+          name: true,
+        },
+      },
+    },
+  });
+
+  if (!version) {
+    return null;
+  }
+
+  return {
+    versionId: version.id,
+    modelId: version.modelId,
+    modelName: version.model.name,
+    versionNumber: version.versionNumber,
+    attributes: version.attributes,
+  };
+}
+
 export async function createModelWithInitialVersion(input: CreateModelInput) {
   const modelId = crypto.randomUUID();
   const versionId = crypto.randomUUID();

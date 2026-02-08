@@ -1,6 +1,4 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, Save, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -20,10 +18,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { deleteModel, updateModel } from "@/functions/models";
 import { getErrorMessage } from "@/lib/error-handling";
-import { useModelQuery } from "@/lib/query-hooks";
-import { queryKeys } from "@/lib/query-keys";
+import {
+  useDeleteModelMutation,
+  useModelQuery,
+  useUpdateModelMutation,
+} from "@/lib/query-hooks";
 
 type ModelDetail = {
   id: string;
@@ -38,14 +38,12 @@ export const Route = createFileRoute("/_authed/models/$modelId/edit")({
 function ModelEditPage() {
   const { modelId } = Route.useParams();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const { data, isLoading, isError, error } = useModelQuery(modelId);
   const model = data as ModelDetail | undefined;
-  const updateModelFn = useServerFn(updateModel);
-  const deleteModelFn = useServerFn(deleteModel);
+  const updateModelMutation = useUpdateModelMutation();
+  const deleteModelMutation = useDeleteModelMutation();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     setName(model?.name || "");
@@ -60,27 +58,16 @@ function ModelEditPage() {
       toast.error("Model name is required");
       return;
     }
-    setIsSaving(true);
     try {
-      await updateModelFn({
-        data: {
-          modelId: model.id,
-          name: name.trim(),
-          description: description.trim() || null,
-        },
+      await updateModelMutation.mutateAsync({
+        modelId: model.id,
+        name: name.trim(),
+        description: description.trim() || null,
       });
       toast.success("Model updated");
-      await queryClient.invalidateQueries({ queryKey: queryKeys.models });
-      if (modelId) {
-        await queryClient.invalidateQueries({
-          queryKey: queryKeys.model(modelId),
-        });
-      }
       await navigate({ to: "/models/$modelId", params: { modelId } });
     } catch (error) {
       toast.error(getErrorMessage(error));
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -89,9 +76,8 @@ function ModelEditPage() {
       return;
     }
     try {
-      await deleteModelFn({ data: { modelId: model.id } });
+      await deleteModelMutation.mutateAsync({ modelId: model.id });
       toast.success("Model deleted");
-      await queryClient.invalidateQueries({ queryKey: queryKeys.models });
       await navigate({ to: "/models" });
     } catch (error) {
       toast.error(getErrorMessage(error));
@@ -179,9 +165,12 @@ function ModelEditPage() {
               onChange={(event) => setDescription(event.target.value)}
               rows={3}
             />
-            <Button onClick={handleSave} disabled={isSaving}>
+            <Button
+              onClick={handleSave}
+              disabled={updateModelMutation.isPending}
+            >
               <Save className="mr-2 h-4 w-4" />
-              {isSaving ? "Saving..." : "Save changes"}
+              {updateModelMutation.isPending ? "Saving..." : "Save changes"}
             </Button>
           </CardContent>
         </Card>

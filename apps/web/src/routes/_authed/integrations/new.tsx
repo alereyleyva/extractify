@@ -1,6 +1,4 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, PlugZap } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -15,25 +13,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { createWebhookIntegration } from "@/functions/integrations";
 import { getErrorMessage } from "@/lib/error-handling";
 import type { IntegrationTargetType } from "@/lib/integrations/types";
-import { queryKeys } from "@/lib/query-keys";
+import { useCreateWebhookIntegrationMutation } from "@/lib/query-hooks";
 export const Route = createFileRoute("/_authed/integrations/new")({
   component: IntegrationCreatePage,
 });
 
 function IntegrationCreatePage() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const createWebhookIntegrationFn = useServerFn(createWebhookIntegration);
+  const createWebhookIntegrationMutation =
+    useCreateWebhookIntegrationMutation();
 
   const [name, setName] = useState("");
   const [type, setType] = useState<IntegrationTargetType>("webhook");
   const [url, setUrl] = useState("");
   const [method, setMethod] = useState<"POST" | "PUT" | "PATCH">("POST");
   const [secret, setSecret] = useState("");
-  const [isCreating, setIsCreating] = useState(false);
 
   const handleCreate = async () => {
     if (!name.trim()) {
@@ -49,23 +45,17 @@ function IntegrationCreatePage() {
       return;
     }
 
-    setIsCreating(true);
     try {
-      await createWebhookIntegrationFn({
-        data: {
-          name: name.trim(),
-          url: url.trim(),
-          method,
-          secret: secret.trim() || undefined,
-        },
+      await createWebhookIntegrationMutation.mutateAsync({
+        name: name.trim(),
+        url: url.trim(),
+        method,
+        secret: secret.trim() || undefined,
       });
       toast.success("Integration created");
-      await queryClient.invalidateQueries({ queryKey: queryKeys.integrations });
       await navigate({ to: "/integrations" });
     } catch (error) {
       toast.error(getErrorMessage(error));
-    } finally {
-      setIsCreating(false);
     }
   };
 
@@ -167,8 +157,13 @@ function IntegrationCreatePage() {
               </div>
             )}
             <div className="flex items-center gap-3">
-              <Button onClick={handleCreate} disabled={isCreating}>
-                {isCreating ? "Creating..." : "Create integration"}
+              <Button
+                onClick={handleCreate}
+                disabled={createWebhookIntegrationMutation.isPending}
+              >
+                {createWebhookIntegrationMutation.isPending
+                  ? "Creating..."
+                  : "Create integration"}
               </Button>
               <Button
                 variant="ghost"

@@ -1,5 +1,4 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -12,7 +11,6 @@ import { ResultsStep } from "@/components/steps/ResultsStep";
 import { Stepper } from "@/components/steps/Stepper";
 import { StepSection } from "@/components/steps/StepSection";
 import { UploadStep } from "@/components/steps/UploadStep";
-import { extractDataFromModel } from "@/functions/extract-data";
 import { getErrorMessage } from "@/lib/error-handling";
 import type {
   IntegrationDeliveryResult,
@@ -25,6 +23,7 @@ import {
 } from "@/lib/llm-models";
 import {
   useActiveModelVersionQuery,
+  useExtractDataMutation,
   useIntegrationsQuery,
   useModelsQuery,
 } from "@/lib/query-hooks";
@@ -73,7 +72,6 @@ function ExtractionPage() {
   } | null;
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [attributes, setAttributes] = useState<Attribute[]>([]);
-  const [isExtracting, setIsExtracting] = useState(false);
   const [results, setResults] = useState<Record<string, unknown> | null>(null);
   const [integrationDeliveries, setIntegrationDeliveries] = useState<
     IntegrationDeliveryResult[]
@@ -102,7 +100,7 @@ function ExtractionPage() {
     enabledIntegrationIds,
   );
 
-  const extractDataFn = useServerFn(extractDataFromModel);
+  const extractDataMutation = useExtractDataMutation();
 
   useEffect(() => {
     if (results && currentStep === "extract") {
@@ -177,43 +175,42 @@ function ExtractionPage() {
       return;
     }
 
-    setIsExtracting(true);
     setResults(null);
     setUsage(null);
     setIntegrationDeliveries([]);
 
     try {
-      const formData = new FormData();
-      formData.append("modelId", selectedModelId);
-      formData.append("llmModelId", selectedLlmModelId);
-      selectedIntegrationIds.forEach((id) => {
-        formData.append("integrationTargetIds", id);
-      });
-      selectedFiles.forEach((file) => {
-        formData.append("files", file, file.name);
-      });
+      const selectedModel = models.find(
+        (model) => model.id === selectedModelId,
+      );
+      const extractionId = crypto.randomUUID();
 
-      const result = await extractDataFn({
-        data: formData,
+      extractDataMutation.mutate(
+        {
+          extractionId,
+          modelId: selectedModelId,
+          modelName: selectedModel?.name ?? "Unknown model",
+          modelVersionId: currentModelVersion?.versionId ?? null,
+          modelVersionNumber: currentModelVersion?.versionNumber ?? null,
+          llmModelId: selectedLlmModelId,
+          files: selectedFiles,
+          integrationTargetIds: selectedIntegrationIds,
+        },
+        {
+          onError: (error) => {
+            toast.error(getErrorMessage(error));
+          },
+        },
+      );
+
+      toast.success("Extraction queued! Redirecting to view progress...");
+
+      navigate({
+        to: "/history/$extractionId",
+        params: { extractionId },
       });
-
-      if (
-        result &&
-        typeof result === "object" &&
-        "extractionId" in result &&
-        "status" in result
-      ) {
-        toast.success("Extraction queued! Redirecting to view progress...");
-
-        navigate({
-          to: "/history/$extractionId",
-          params: { extractionId: result.extractionId },
-        });
-      }
     } catch (error) {
       toast.error(getErrorMessage(error));
-    } finally {
-      setIsExtracting(false);
     }
   };
 
@@ -230,7 +227,7 @@ function ExtractionPage() {
     selectedFiles.length > 0 &&
     selectedModelId &&
     areAttributesValid(attributes) &&
-    !isExtracting;
+    !extractDataMutation.isPending;
 
   const steps = useMemo(
     () =>
@@ -332,7 +329,7 @@ function ExtractionPage() {
             <StepSection active={currentStep === "extract"}>
               <ExtractStep
                 canExtract={!!canExtract}
-                isExtracting={isExtracting}
+                isExtracting={extractDataMutation.isPending}
                 onBack={() => setCurrentStep("attributes")}
                 onExtract={handleExtract}
                 llmModels={LLM_MODELS}
@@ -357,7 +354,7 @@ function ExtractionPage() {
               <ResultsStep
                 results={results}
                 usage={usage}
-                isLoading={isExtracting}
+                isLoading={extractDataMutation.isPending}
                 modelId={selectedLlmModelId}
                 integrationDeliveries={integrationDeliveries}
                 onBack={() => setCurrentStep("attributes")}

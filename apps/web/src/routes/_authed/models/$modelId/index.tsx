@@ -1,18 +1,17 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, ArrowRight, Check, Pencil, Plus } from "lucide-react";
 import { useMemo } from "react";
 import { toast } from "sonner";
 import { RouteError } from "@/components/route-error";
 import { ModelDetailSkeleton } from "@/components/skeletons/models-skeletons";
 import { Button } from "@/components/ui/button";
-import { setActiveModelVersion } from "@/functions/models";
 import { formatDate } from "@/lib/date";
 import { getErrorMessage } from "@/lib/error-handling";
 import type { ModelDetail } from "@/lib/models-types";
-import { useModelQuery } from "@/lib/query-hooks";
-import { queryKeys } from "@/lib/query-keys";
+import {
+  useModelQuery,
+  useSetActiveModelVersionMutation,
+} from "@/lib/query-hooks";
 export const Route = createFileRoute("/_authed/models/$modelId/")({
   component: ModelDetailPage,
   errorComponent: ({ error }) => (
@@ -27,10 +26,9 @@ export const Route = createFileRoute("/_authed/models/$modelId/")({
 
 function ModelDetailPage() {
   const { modelId } = Route.useParams();
-  const queryClient = useQueryClient();
   const { data, isLoading, isError, error } = useModelQuery(modelId);
   const model = data as ModelDetail | undefined;
-  const setActiveFn = useServerFn(setActiveModelVersion);
+  const setActiveMutation = useSetActiveModelVersionMutation();
 
   const sortedVersions = useMemo(() => {
     if (!model?.versions) {
@@ -43,14 +41,8 @@ function ModelDetailPage() {
 
   const handleSetActive = async (versionId: string) => {
     try {
-      await setActiveFn({ data: { versionId } });
+      await setActiveMutation.mutateAsync({ versionId, modelId });
       toast.success("Active version updated");
-      await queryClient.invalidateQueries({ queryKey: queryKeys.models });
-      if (modelId) {
-        await queryClient.invalidateQueries({
-          queryKey: queryKeys.model(modelId),
-        });
-      }
     } catch (error) {
       toast.error(getErrorMessage(error));
     }

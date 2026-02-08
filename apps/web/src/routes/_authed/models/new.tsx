@@ -1,7 +1,5 @@
 import type { AttributeInput } from "@extractify/shared/attribute-model";
-import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -10,9 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { createModel } from "@/functions/models";
 import { getErrorMessage } from "@/lib/error-handling";
-import { queryKeys } from "@/lib/query-keys";
+import { useCreateModelMutation } from "@/lib/query-hooks";
 import { areAttributesValid, validateAttributes } from "@/lib/validation";
 
 export const Route = createFileRoute("/_authed/models/new")({
@@ -21,13 +18,11 @@ export const Route = createFileRoute("/_authed/models/new")({
 
 function ModelCreatePage() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const createModelFn = useServerFn(createModel);
+  const createModelMutation = useCreateModelMutation();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [changelog, setChangelog] = useState("");
   const [attributes, setAttributes] = useState<AttributeInput[]>([]);
-  const [isCreating, setIsCreating] = useState(false);
 
   const handleCreateModel = async () => {
     if (!name.trim()) {
@@ -41,20 +36,16 @@ function ModelCreatePage() {
       return;
     }
 
-    setIsCreating(true);
     try {
-      const result = await createModelFn({
-        data: {
-          name: name.trim(),
-          description: description.trim() || undefined,
-          changelog: changelog.trim() || undefined,
-          attributes: validAttributes,
-        },
+      const result = await createModelMutation.mutateAsync({
+        name: name.trim(),
+        description: description.trim() || undefined,
+        changelog: changelog.trim() || undefined,
+        attributes: validAttributes,
       });
 
       if (result && typeof result === "object" && "modelId" in result) {
         toast.success("Model created");
-        await queryClient.invalidateQueries({ queryKey: queryKeys.models });
         await navigate({
           to: "/models/$modelId",
           params: { modelId: result.modelId as string },
@@ -62,8 +53,6 @@ function ModelCreatePage() {
       }
     } catch (error) {
       toast.error(getErrorMessage(error));
-    } finally {
-      setIsCreating(false);
     }
   };
 
@@ -110,10 +99,10 @@ function ModelCreatePage() {
             <Button
               className="w-full"
               onClick={handleCreateModel}
-              disabled={isCreating}
+              disabled={createModelMutation.isPending}
             >
               <Plus className="mr-2 h-4 w-4" />
-              {isCreating ? "Creating..." : "Create model"}
+              {createModelMutation.isPending ? "Creating..." : "Create model"}
             </Button>
           </CardContent>
         </Card>

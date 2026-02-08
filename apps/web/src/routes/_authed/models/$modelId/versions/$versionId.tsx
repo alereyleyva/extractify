@@ -1,6 +1,4 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, Check, Save } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -9,11 +7,13 @@ import { VersionEditorSkeleton } from "@/components/skeletons/models-skeletons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { setActiveModelVersion, updateModelVersion } from "@/functions/models";
 import { getErrorMessage } from "@/lib/error-handling";
 import type { ModelDetail, ModelVersion } from "@/lib/models-types";
-import { useModelQuery } from "@/lib/query-hooks";
-import { queryKeys } from "@/lib/query-keys";
+import {
+  useModelQuery,
+  useSetActiveModelVersionMutation,
+  useUpdateModelVersionMutation,
+} from "@/lib/query-hooks";
 import { areAttributesValid, validateAttributes } from "@/lib/validation";
 
 export const Route = createFileRoute(
@@ -25,14 +25,12 @@ export const Route = createFileRoute(
 function VersionDetailPage() {
   const { modelId, versionId } = Route.useParams();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const { data, isLoading, isError, error } = useModelQuery(modelId);
   const model = data as ModelDetail | undefined;
-  const updateVersionFn = useServerFn(updateModelVersion);
-  const setActiveFn = useServerFn(setActiveModelVersion);
+  const updateVersionMutation = useUpdateModelVersionMutation();
+  const setActiveMutation = useSetActiveModelVersionMutation();
   const [attributes, setAttributes] = useState<ModelVersion["attributes"]>([]);
   const [changelog, setChangelog] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
 
   const version = useMemo(() => {
     if (!model) {
@@ -60,27 +58,17 @@ function VersionDetailPage() {
       toast.error("Please define at least one valid attribute");
       return;
     }
-    setIsSaving(true);
     try {
-      await updateVersionFn({
-        data: {
-          versionId: version.id,
-          attributes: validAttributes,
-          changelog: changelog.trim() || null,
-        },
+      await updateVersionMutation.mutateAsync({
+        versionId: version.id,
+        attributes: validAttributes,
+        changelog: changelog.trim() || null,
+        modelId,
       });
       toast.success("Version updated");
-      await queryClient.invalidateQueries({ queryKey: queryKeys.models });
-      if (modelId) {
-        await queryClient.invalidateQueries({
-          queryKey: queryKeys.model(modelId),
-        });
-      }
       await navigate({ to: "/models/$modelId", params: { modelId } });
     } catch (error) {
       toast.error(getErrorMessage(error));
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -89,14 +77,8 @@ function VersionDetailPage() {
       return;
     }
     try {
-      await setActiveFn({ data: { versionId: version.id } });
+      await setActiveMutation.mutateAsync({ versionId: version.id, modelId });
       toast.success("Active version updated");
-      await queryClient.invalidateQueries({ queryKey: queryKeys.models });
-      if (modelId) {
-        await queryClient.invalidateQueries({
-          queryKey: queryKeys.model(modelId),
-        });
-      }
       await navigate({ to: "/models/$modelId", params: { modelId } });
     } catch (error) {
       toast.error(getErrorMessage(error));
@@ -182,9 +164,13 @@ function VersionDetailPage() {
               attributes={attributes}
               onAttributesChange={setAttributes}
             />
-            <Button className="w-full" onClick={handleSave} disabled={isSaving}>
+            <Button
+              className="w-full"
+              onClick={handleSave}
+              disabled={updateVersionMutation.isPending}
+            >
               <Save className="mr-2 h-4 w-4" />
-              {isSaving ? "Saving..." : "Save version"}
+              {updateVersionMutation.isPending ? "Saving..." : "Save version"}
             </Button>
           </CardContent>
         </Card>

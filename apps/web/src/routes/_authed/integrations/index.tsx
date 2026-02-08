@@ -1,6 +1,4 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { Globe, PlugZap, PlusCircle } from "lucide-react";
 import { toast } from "sonner";
 import { IntegrationsListSkeleton } from "@/components/skeletons/integrations-skeletons";
@@ -16,14 +14,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import {
-  deleteIntegrationTarget,
-  updateIntegrationTarget,
-} from "@/functions/integrations";
 import { getErrorMessage } from "@/lib/error-handling";
 import type { IntegrationTarget } from "@/lib/integrations/types";
-import { useIntegrationsQuery } from "@/lib/query-hooks";
-import { queryKeys } from "@/lib/query-keys";
+import {
+  useDeleteIntegrationTargetMutation,
+  useIntegrationsQuery,
+  useUpdateIntegrationTargetMutation,
+} from "@/lib/query-hooks";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authed/integrations/")({
@@ -31,21 +28,17 @@ export const Route = createFileRoute("/_authed/integrations/")({
 });
 
 function IntegrationsPage() {
-  const queryClient = useQueryClient();
   const { data, isLoading } = useIntegrationsQuery();
   const targets = (data || []) as unknown as IntegrationTarget[];
-  const updateIntegrationTargetFn = useServerFn(updateIntegrationTarget);
-  const deleteIntegrationTargetFn = useServerFn(deleteIntegrationTarget);
+  const updateIntegrationTargetMutation = useUpdateIntegrationTargetMutation();
+  const deleteIntegrationTargetMutation = useDeleteIntegrationTargetMutation();
 
   const handleToggle = async (target: IntegrationTarget) => {
     try {
-      await updateIntegrationTargetFn({
-        data: {
-          targetId: target.id,
-          enabled: !target.enabled,
-        },
+      await updateIntegrationTargetMutation.mutateAsync({
+        targetId: target.id,
+        enabled: !target.enabled,
       });
-      await queryClient.invalidateQueries({ queryKey: queryKeys.integrations });
     } catch (error) {
       toast.error(getErrorMessage(error));
     }
@@ -53,9 +46,10 @@ function IntegrationsPage() {
 
   const handleDelete = async (target: IntegrationTarget) => {
     try {
-      await deleteIntegrationTargetFn({ data: { targetId: target.id } });
+      await deleteIntegrationTargetMutation.mutateAsync({
+        targetId: target.id,
+      });
       toast.success("Integration deleted");
-      await queryClient.invalidateQueries({ queryKey: queryKeys.integrations });
     } catch (error) {
       toast.error(getErrorMessage(error));
     }

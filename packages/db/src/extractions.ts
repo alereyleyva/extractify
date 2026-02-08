@@ -18,6 +18,7 @@ export type CreateExtractionRunInput = {
   modelId: string;
   modelVersionId: string;
   llmModelId: string;
+  extractionId?: string;
 };
 
 export type CreateExtractionInput = {
@@ -47,7 +48,7 @@ export type ExtractionErrorInput = {
 };
 
 export async function createExtractionRun(input: CreateExtractionRunInput) {
-  const extractionId = crypto.randomUUID();
+  const extractionId = input.extractionId ?? crypto.randomUUID();
 
   const [created] = await db
     .insert(extractionRun)

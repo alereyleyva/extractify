@@ -1,6 +1,4 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, Save, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -27,14 +25,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  deleteIntegrationTarget,
-  updateWebhookIntegration,
-} from "@/functions/integrations";
 import { getErrorMessage } from "@/lib/error-handling";
 import type { IntegrationTarget } from "@/lib/integrations/types";
-import { useIntegrationQuery } from "@/lib/query-hooks";
-import { queryKeys } from "@/lib/query-keys";
+import {
+  useDeleteIntegrationTargetMutation,
+  useIntegrationQuery,
+  useUpdateWebhookIntegrationMutation,
+} from "@/lib/query-hooks";
 
 export const Route = createFileRoute(
   "/_authed/integrations/$integrationId/edit",
@@ -45,19 +42,18 @@ export const Route = createFileRoute(
 function IntegrationEditPage() {
   const { integrationId } = Route.useParams();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const { data, isLoading, isError, error } =
     useIntegrationQuery(integrationId);
   const integration = data as IntegrationTarget | undefined;
-  const updateWebhookIntegrationFn = useServerFn(updateWebhookIntegration);
-  const deleteIntegrationTargetFn = useServerFn(deleteIntegrationTarget);
+  const updateWebhookIntegrationMutation =
+    useUpdateWebhookIntegrationMutation();
+  const deleteIntegrationTargetMutation = useDeleteIntegrationTargetMutation();
 
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
   const [method, setMethod] = useState<"POST" | "PUT" | "PATCH">("POST");
   const [secret, setSecret] = useState("");
   const [clearSecret, setClearSecret] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     setName(integration?.name || "");
@@ -80,28 +76,19 @@ function IntegrationEditPage() {
       return;
     }
 
-    setIsSaving(true);
     try {
-      await updateWebhookIntegrationFn({
-        data: {
-          targetId: integration.id,
-          name: name.trim(),
-          url: url.trim(),
-          method,
-          secret: secret.trim() || undefined,
-          clearSecret,
-        },
+      await updateWebhookIntegrationMutation.mutateAsync({
+        targetId: integration.id,
+        name: name.trim(),
+        url: url.trim(),
+        method,
+        secret: secret.trim() || undefined,
+        clearSecret,
       });
       toast.success("Integration updated");
-      await queryClient.invalidateQueries({ queryKey: queryKeys.integrations });
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.integration(integration.id),
-      });
       await navigate({ to: "/integrations" });
     } catch (error) {
       toast.error(getErrorMessage(error));
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -110,9 +97,10 @@ function IntegrationEditPage() {
       return;
     }
     try {
-      await deleteIntegrationTargetFn({ data: { targetId: integration.id } });
+      await deleteIntegrationTargetMutation.mutateAsync({
+        targetId: integration.id,
+      });
       toast.success("Integration deleted");
-      await queryClient.invalidateQueries({ queryKey: queryKeys.integrations });
       await navigate({ to: "/integrations" });
     } catch (error) {
       toast.error(getErrorMessage(error));
@@ -268,9 +256,14 @@ function IntegrationEditPage() {
               <Label htmlFor="clear-secret">Clear existing secret</Label>
             </div>
             <div className="flex items-center gap-3">
-              <Button onClick={handleSave} disabled={isSaving}>
+              <Button
+                onClick={handleSave}
+                disabled={updateWebhookIntegrationMutation.isPending}
+              >
                 <Save className="mr-2 h-4 w-4" />
-                {isSaving ? "Saving..." : "Save changes"}
+                {updateWebhookIntegrationMutation.isPending
+                  ? "Saving..."
+                  : "Save changes"}
               </Button>
               <Button
                 variant="ghost"

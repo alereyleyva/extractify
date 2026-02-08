@@ -1,6 +1,4 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -9,11 +7,12 @@ import { VersionEditorSkeleton } from "@/components/skeletons/models-skeletons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { createModelVersion } from "@/functions/models";
 import { getErrorMessage } from "@/lib/error-handling";
 import type { ModelDetail, ModelVersion } from "@/lib/models-types";
-import { useModelQuery } from "@/lib/query-hooks";
-import { queryKeys } from "@/lib/query-keys";
+import {
+  useCreateModelVersionMutation,
+  useModelQuery,
+} from "@/lib/query-hooks";
 import { areAttributesValid, validateAttributes } from "@/lib/validation";
 
 export const Route = createFileRoute("/_authed/models/$modelId/versions/new")({
@@ -23,13 +22,11 @@ export const Route = createFileRoute("/_authed/models/$modelId/versions/new")({
 function VersionCreatePage() {
   const { modelId } = Route.useParams();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const { data, isLoading, isError, error } = useModelQuery(modelId);
   const model = data as ModelDetail | undefined;
-  const createVersionFn = useServerFn(createModelVersion);
+  const createVersionMutation = useCreateModelVersionMutation();
   const [attributes, setAttributes] = useState<ModelVersion["attributes"]>([]);
   const [changelog, setChangelog] = useState("");
-  const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
     if (!model) {
@@ -55,28 +52,17 @@ function VersionCreatePage() {
       return;
     }
 
-    setIsCreating(true);
     try {
-      await createVersionFn({
-        data: {
-          modelId: model.id,
-          attributes: validAttributes,
-          changelog: changelog.trim() || undefined,
-          setActive: true,
-        },
+      await createVersionMutation.mutateAsync({
+        modelId: model.id,
+        attributes: validAttributes,
+        changelog: changelog.trim() || undefined,
+        setActive: true,
       });
       toast.success("New version created");
-      await queryClient.invalidateQueries({ queryKey: queryKeys.models });
-      if (modelId) {
-        await queryClient.invalidateQueries({
-          queryKey: queryKeys.model(modelId),
-        });
-      }
       await navigate({ to: "/models/$modelId", params: { modelId } });
     } catch (error) {
       toast.error(getErrorMessage(error));
-    } finally {
-      setIsCreating(false);
     }
   };
 
@@ -137,10 +123,12 @@ function VersionCreatePage() {
             <Button
               className="w-full"
               onClick={handleCreate}
-              disabled={isCreating}
+              disabled={createVersionMutation.isPending}
             >
               <Plus className="mr-2 h-4 w-4" />
-              {isCreating ? "Creating..." : "Create version"}
+              {createVersionMutation.isPending
+                ? "Creating..."
+                : "Create version"}
             </Button>
           </CardContent>
         </Card>

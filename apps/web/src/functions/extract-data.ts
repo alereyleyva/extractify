@@ -30,6 +30,7 @@ const MAX_FILES = 10;
 const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
 const MAX_TOTAL_SIZE_BYTES = 200 * 1024 * 1024;
 const MODEL_ID_SCHEMA = z.string().uuid();
+const EXTRACTION_ID_SCHEMA = z.string().uuid();
 
 function normalizeFileType(fileType: string) {
   if (fileType === "image/jpg") {
@@ -85,6 +86,20 @@ function parseModelId(value: FormDataEntryValue | null) {
   const parsed = MODEL_ID_SCHEMA.safeParse(value.trim());
   if (!parsed.success) {
     throw new Error("Invalid model ID");
+  }
+  return parsed.data;
+}
+
+function parseExtractionId(value: FormDataEntryValue | null) {
+  if (value == null) {
+    return undefined;
+  }
+  if (typeof value !== "string") {
+    throw new Error("Invalid extraction ID");
+  }
+  const parsed = EXTRACTION_ID_SCHEMA.safeParse(value.trim());
+  if (!parsed.success) {
+    throw new Error("Invalid extraction ID");
   }
   return parsed.data;
 }
@@ -177,6 +192,7 @@ export const extractDataFromModel = createServerFn({ method: "POST" })
       throw new Error("Expected FormData");
     }
     const files = validateFilesFromFormData(data);
+    const extractionId = parseExtractionId(data.get("extractionId"));
     const modelId = parseModelId(data.get("modelId"));
     const llmModelId = parseLlmModelId(data.get("llmModelId"));
     const integrationTargetIds = data
@@ -186,6 +202,7 @@ export const extractDataFromModel = createServerFn({ method: "POST" })
       .filter(Boolean);
 
     return {
+      extractionId,
       modelId,
       llmModelId,
       integrationTargetIds:
@@ -207,6 +224,7 @@ export const extractDataFromModel = createServerFn({ method: "POST" })
 
     const extractionRun = await createExtractionRun({
       ownerId,
+      extractionId: data.extractionId,
       modelId: activeVersion.modelId,
       modelVersionId: activeVersion.versionId,
       llmModelId: data.llmModelId,

@@ -16,7 +16,7 @@ import { generateText, Output } from "ai";
 import type { z } from "zod";
 import { ExtractionStrategyFactory } from "../extraction/strategy-factory";
 import { deliverIntegrations } from "../integrations/deliver";
-import { downloadExtractionFile } from "../storage/s3";
+import { deleteExtractionFile, downloadExtractionFile } from "../storage/s3";
 
 type LlmModelId = string;
 
@@ -136,6 +136,17 @@ export async function processExtraction(job: ExtractionJobData): Promise<void> {
           error,
         );
       }
+    }
+
+    try {
+      await Promise.all(
+        files.map((file) => deleteExtractionFile(file.fileUrl)),
+      );
+    } catch (error) {
+      console.error(
+        `[worker] Failed to remove extraction files for ${extractionId}:`,
+        error,
+      );
     }
   } catch (error) {
     const message =

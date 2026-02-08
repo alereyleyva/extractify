@@ -1,4 +1,8 @@
-import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import {
+  DeleteObjectCommand,
+  GetObjectCommand,
+  S3Client,
+} from "@aws-sdk/client-s3";
 import { fromNodeProviderChain } from "@aws-sdk/credential-providers";
 import { env } from "@extractify/env/server";
 
@@ -14,23 +18,27 @@ function getS3Client(): S3Client {
   return s3Client;
 }
 
+function parseS3UrlOrKey(s3UrlOrKey: string): { bucket: string; key: string } {
+  if (s3UrlOrKey.startsWith("s3://")) {
+    const url = s3UrlOrKey.slice(5);
+    const slashIndex = url.indexOf("/");
+    return {
+      bucket: url.slice(0, slashIndex),
+      key: url.slice(slashIndex + 1),
+    };
+  }
+
+  return {
+    bucket: env.AWS_EXTRACTION_BUCKET,
+    key: s3UrlOrKey,
+  };
+}
+
 export async function downloadExtractionFile(
   s3UrlOrKey: string,
 ): Promise<ArrayBuffer> {
   const client = getS3Client();
-
-  let bucket: string;
-  let key: string;
-
-  if (s3UrlOrKey.startsWith("s3://")) {
-    const url = s3UrlOrKey.slice(5);
-    const slashIndex = url.indexOf("/");
-    bucket = url.slice(0, slashIndex);
-    key = url.slice(slashIndex + 1);
-  } else {
-    bucket = env.AWS_EXTRACTION_BUCKET;
-    key = s3UrlOrKey;
-  }
+  const { bucket, key } = parseS3UrlOrKey(s3UrlOrKey);
 
   const response = await client.send(
     new GetObjectCommand({
@@ -48,4 +56,16 @@ export async function downloadExtractionFile(
     bytes.byteOffset,
     bytes.byteOffset + bytes.byteLength,
   ) as ArrayBuffer;
+}
+
+export async function deleteExtractionFile(s3UrlOrKey: string): Promise<void> {
+  const client = getS3Client();
+  const { bucket, key } = parseS3UrlOrKey(s3UrlOrKey);
+
+  await client.send(
+    new DeleteObjectCommand({
+      Bucket: bucket,
+      Key: key,
+    }),
+  );
 }

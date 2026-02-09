@@ -21,6 +21,10 @@ export const SUPPORTED_FILE_TYPES = [
 export type SupportedFileType = (typeof SUPPORTED_FILE_TYPES)[number];
 
 export interface ExtractionStrategy {
-  extractText(fileData: ArrayBuffer, fileName: string): Promise<string>;
+  extractText(
+    fileData: ArrayBuffer,
+    fileName: string,
+    fileUrl?: string,
+  ): Promise<string>;
   supports(fileType: string): boolean;
 }

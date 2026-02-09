@@ -23,7 +23,11 @@ export class ImageExtractionStrategy implements ExtractionStrategy {
     );
   }
 
-  async extractText(fileData: ArrayBuffer, _fileName: string): Promise<string> {
+  async extractText(
+    fileData: ArrayBuffer,
+    _fileName: string,
+    _fileUrl?: string,
+  ): Promise<string> {
     const buffer = Buffer.from(fileData);
 
     const command = new DetectDocumentTextCommand({

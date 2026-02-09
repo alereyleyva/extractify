@@ -34,6 +34,7 @@ async function runExtraction(input: {
     fileName: string;
     fileType: string;
     fileData: ArrayBuffer;
+    fileUrl: string;
   }>;
   attributes: z.infer<typeof AttributeSchema>[];
   llmModelId: LlmModelId;
@@ -46,6 +47,7 @@ async function runExtraction(input: {
     const documentText = await strategy.extractText(
       file.fileData,
       file.fileName,
+      file.fileUrl,
     );
     documentSections.push(
       `--- Document: ${file.fileName} ---\n${documentText}`,
@@ -97,6 +99,7 @@ export async function processExtraction(job: ExtractionJobData): Promise<void> {
           fileName: file.fileName,
           fileType: file.fileType,
           fileData,
+          fileUrl: file.fileUrl,
         };
       }),
     );

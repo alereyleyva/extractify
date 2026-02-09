@@ -8,7 +8,11 @@ export class PDFExtractionStrategy implements ExtractionStrategy {
     );
   }
 
-  async extractText(fileData: ArrayBuffer, _fileName: string): Promise<string> {
+  async extractText(
+    fileData: ArrayBuffer,
+    _fileName: string,
+    _fileUrl?: string,
+  ): Promise<string> {
     const { text } = await extractText(fileData, { mergePages: true });
 
     return text;

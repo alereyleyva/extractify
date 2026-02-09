@@ -1,9 +1,4 @@
 import {
-  DeleteObjectCommand,
-  PutObjectCommand,
-  S3Client,
-} from "@aws-sdk/client-s3";
-import {
   DeleteTranscriptionJobCommand,
   GetTranscriptionJobCommand,
   type MediaFormat,
@@ -19,13 +14,6 @@ const AUDIO_FORMAT_BY_EXTENSION: Record<string, MediaFormat> = {
   wav: "wav",
   m4a: "mp4",
   mp4: "mp4",
-};
-
-const AUDIO_MIME_BY_EXTENSION: Record<string, string> = {
-  mp3: "audio/mpeg",
-  wav: "audio/wav",
-  m4a: "audio/mp4",
-  mp4: "audio/mp4",
 };
 
 const MAX_TRANSCRIBE_WAIT_MS = 10 * 60 * 1000;
@@ -50,17 +38,16 @@ function getMediaFormat(fileName: string): MediaFormat {
   return AUDIO_FORMAT_BY_EXTENSION[extension] ?? "mp3";
 }
 
-function getContentType(fileName: string) {
-  const extension = getExtension(fileName);
-  if (!extension) {
-    return undefined;
+function buildMediaUri(fileUrl?: string) {
+  if (fileUrl?.startsWith("s3://")) {
+    return fileUrl;
   }
-  return AUDIO_MIME_BY_EXTENSION[extension];
-}
 
-function buildS3Key(fileName: string) {
-  const sanitized = fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
-  return `transcribe/${crypto.randomUUID()}-${sanitized}`;
+  if (fileUrl) {
+    return `s3://${env.AWS_EXTRACTION_BUCKET}/${fileUrl}`;
+  }
+
+  return undefined;
 }
 
 async function fetchTranscriptText(transcriptUri: string) {
@@ -78,15 +65,10 @@ async function fetchTranscriptText(transcriptUri: string) {
 }
 
 export class AudioExtractionStrategy implements ExtractionStrategy {
-  private s3Client: S3Client;
   private transcribeClient: TranscribeClient;
 
   constructor() {
     const credentials = fromNodeProviderChain();
-    this.s3Client = new S3Client({
-      region: env.AWS_REGION,
-      credentials,
-    });
     this.transcribeClient = new TranscribeClient({
       region: env.AWS_REGION,
       credentials,
@@ -99,26 +81,18 @@ export class AudioExtractionStrategy implements ExtractionStrategy {
     );
   }
 
-  async extractText(fileData: ArrayBuffer, fileName: string): Promise<string> {
-    const bucket = env.AWS_TRANSCRIBE_BUCKET;
-    const key = buildS3Key(fileName);
-    const buffer = Buffer.from(fileData);
+  async extractText(
+    _fileData: ArrayBuffer,
+    fileName: string,
+    fileUrl?: string,
+  ): Promise<string> {
     const mediaFormat = getMediaFormat(fileName);
-    const contentType = getContentType(fileName);
+    const mediaUri = buildMediaUri(fileUrl);
     const jobName = `extractify-${crypto.randomUUID()}`;
 
-    console.log("[worker] Uploading audio file to S3 for transcription...");
-
-    await this.s3Client.send(
-      new PutObjectCommand({
-        Bucket: bucket,
-        Key: key,
-        Body: buffer,
-        ...(contentType ? { ContentType: contentType } : {}),
-      }),
-    );
-
-    const mediaUri = `s3://${bucket}/${key}`;
+    if (!mediaUri) {
+      throw new Error("Audio file location is required for transcription.");
+    }
 
     try {
       await this.transcribeClient.send(
@@ -167,19 +141,11 @@ export class AudioExtractionStrategy implements ExtractionStrategy {
         "Transcription is taking longer than expected. Please try again.",
       );
     } finally {
-      await Promise.allSettled([
-        this.s3Client.send(
-          new DeleteObjectCommand({
-            Bucket: bucket,
-            Key: key,
-          }),
-        ),
-        this.transcribeClient.send(
-          new DeleteTranscriptionJobCommand({
-            TranscriptionJobName: jobName,
-          }),
-        ),
-      ]);
+      await this.transcribeClient.send(
+        new DeleteTranscriptionJobCommand({
+          TranscriptionJobName: jobName,
+        }),
+      );
     }
   }
 }

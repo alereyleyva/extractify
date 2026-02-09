@@ -11,7 +11,7 @@ import {
   TranscribeClient,
 } from "@aws-sdk/client-transcribe";
 import { fromNodeProviderChain } from "@aws-sdk/credential-providers";
-import { env } from "@extractify/env/server";
+import { env } from "@extractify/env/worker";
 import { type ExtractionStrategy, SUPPORTED_AUDIO_TYPES } from "./types";
 
 const AUDIO_FORMAT_BY_EXTENSION: Record<string, MediaFormat> = {

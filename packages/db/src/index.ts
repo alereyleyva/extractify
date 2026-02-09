@@ -1,4 +1,4 @@
-import { env } from "@extractify/env/server";
+import { env } from "@extractify/env/db";
 import { drizzle } from "drizzle-orm/node-postgres";
 
 import * as schema from "./schema";

@@ -4,7 +4,7 @@ import {
   TextractClient,
 } from "@aws-sdk/client-textract";
 import { fromNodeProviderChain } from "@aws-sdk/credential-providers";
-import { env } from "@extractify/env/server";
+import { env } from "@extractify/env/worker";
 import { type ExtractionStrategy, SUPPORTED_IMAGE_TYPES } from "./types";
 
 export class ImageExtractionStrategy implements ExtractionStrategy {

@@ -1,0 +1,18 @@
+import "dotenv/config";
+import { createEnv } from "@t3-oss/env-core";
+import { z } from "zod";
+
+export const env = createEnv({
+  server: {
+    AWS_REGION: z.string().min(1),
+    AWS_TRANSCRIBE_BUCKET: z.string().min(1),
+    AWS_EXTRACTION_BUCKET: z.string().min(1),
+    DATABASE_URL: z.string().min(1),
+    INTEGRATION_SECRETS_KEY: z.string().min(32),
+    NODE_ENV: z
+      .enum(["development", "production", "test"])
+      .default("development"),
+  },
+  runtimeEnv: process.env,
+  emptyStringAsUndefined: true,
+});

@@ -4,7 +4,7 @@ import {
   S3Client,
 } from "@aws-sdk/client-s3";
 import { fromNodeProviderChain } from "@aws-sdk/credential-providers";
-import { env } from "@extractify/env/server";
+import { env } from "@extractify/env/worker";
 
 let s3Client: S3Client | null = null;
 

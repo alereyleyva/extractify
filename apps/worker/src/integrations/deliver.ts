@@ -6,7 +6,7 @@ import {
   listEnabledIntegrationTargetsForOwner,
   updateIntegrationDelivery,
 } from "@extractify/db/integrations";
-import { env } from "@extractify/env/server";
+import { env } from "@extractify/env/worker";
 import { z } from "zod";
 
 const EncryptedSecretSchema = z.object({

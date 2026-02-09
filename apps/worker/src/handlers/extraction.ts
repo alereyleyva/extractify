@@ -5,7 +5,7 @@ import {
   updateExtractionRun,
 } from "@extractify/db/extractions";
 import { getModelVersionById } from "@extractify/db/models";
-import { env } from "@extractify/env/server";
+import { env } from "@extractify/env/worker";
 import type { ExtractionJobData } from "@extractify/queue";
 import type { AttributeSchema } from "@extractify/shared/attribute-model";
 import {

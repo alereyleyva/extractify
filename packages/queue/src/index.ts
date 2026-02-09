@@ -1,4 +1,4 @@
-import { env } from "@extractify/env/server";
+import { env } from "@extractify/env/db";
 import PgBoss from "pg-boss";
 
 export const EXTRACTION_QUEUE = "extraction" as const;

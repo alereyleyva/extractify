@@ -9,4 +9,5 @@ export const queryKeys = {
   integrations: ["integrations"] as const,
   integration: (integrationId: string) =>
     ["integrations", integrationId] as const,
+  pendingSheetsOAuth: ["integrations", "sheets", "pending-oauth"] as const,
 };

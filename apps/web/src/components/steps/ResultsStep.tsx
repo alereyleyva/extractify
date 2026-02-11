@@ -56,6 +56,11 @@ export function ResultsStep({
                         ? ` · ${delivery.responseStatus}`
                         : ""}
                     </p>
+                    {delivery.errorMessage && (
+                      <p className="text-rose-600 text-xs">
+                        {delivery.errorMessage}
+                      </p>
+                    )}
                   </div>
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs ${

@@ -7,6 +7,8 @@ export const env = createEnv({
     AWS_REGION: z.string().min(1),
     AWS_EXTRACTION_BUCKET: z.string().min(1),
     DATABASE_URL: z.string().min(1),
+    GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+    GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
     INTEGRATION_SECRETS_KEY: z.string().min(32),
     NODE_ENV: z
       .enum(["development", "production", "test"])

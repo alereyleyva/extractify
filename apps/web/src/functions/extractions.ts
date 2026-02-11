@@ -45,6 +45,7 @@ type ExtractionRunDetail = ExtractionRunListItem & {
         targetId: string;
         status: "pending" | "processing" | "succeeded" | "failed";
         responseStatus?: number | null;
+        errorMessage?: string | null;
         target?: {
           name: string | null;
           type: "webhook" | "sheets" | "postgres";
@@ -128,6 +129,7 @@ export const getExtraction = createServerFn({ method: "POST" })
         type: delivery.target?.type ?? "webhook",
         status: delivery.status,
         responseStatus: delivery.responseStatus ?? null,
+        errorMessage: delivery.errorMessage ?? null,
       }));
 
       return {

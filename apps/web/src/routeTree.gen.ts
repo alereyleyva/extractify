@@ -24,6 +24,8 @@ import { Route as AuthedModelsModelIdRouteImport } from './routes/_authed/models
 import { Route as AuthedIntegrationsNewRouteImport } from './routes/_authed/integrations/new'
 import { Route as AuthedHistoryExtractionIdRouteImport } from './routes/_authed/history/$extractionId'
 import { Route as AuthedModelsModelIdIndexRouteImport } from './routes/_authed/models/$modelId/index'
+import { Route as ApiIntegrationsGoogleSheetsConnectRouteImport } from './routes/api/integrations/google-sheets/connect'
+import { Route as ApiIntegrationsGoogleSheetsCallbackRouteImport } from './routes/api/integrations/google-sheets/callback'
 import { Route as AuthedModelsModelIdEditRouteImport } from './routes/_authed/models/$modelId/edit'
 import { Route as AuthedIntegrationsIntegrationIdEditRouteImport } from './routes/_authed/integrations/$integrationId/edit'
 import { Route as AuthedModelsModelIdVersionsNewRouteImport } from './routes/_authed/models/$modelId/versions/new'
@@ -105,6 +107,18 @@ const AuthedModelsModelIdIndexRoute =
     path: '/',
     getParentRoute: () => AuthedModelsModelIdRoute,
   } as any)
+const ApiIntegrationsGoogleSheetsConnectRoute =
+  ApiIntegrationsGoogleSheetsConnectRouteImport.update({
+    id: '/api/integrations/google-sheets/connect',
+    path: '/api/integrations/google-sheets/connect',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiIntegrationsGoogleSheetsCallbackRoute =
+  ApiIntegrationsGoogleSheetsCallbackRouteImport.update({
+    id: '/api/integrations/google-sheets/callback',
+    path: '/api/integrations/google-sheets/callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthedModelsModelIdEditRoute = AuthedModelsModelIdEditRouteImport.update({
   id: '/edit',
   path: '/edit',
@@ -145,6 +159,8 @@ export interface FileRoutesByFullPath {
   '/models/': typeof AuthedModelsIndexRoute
   '/integrations/$integrationId/edit': typeof AuthedIntegrationsIntegrationIdEditRoute
   '/models/$modelId/edit': typeof AuthedModelsModelIdEditRoute
+  '/api/integrations/google-sheets/callback': typeof ApiIntegrationsGoogleSheetsCallbackRoute
+  '/api/integrations/google-sheets/connect': typeof ApiIntegrationsGoogleSheetsConnectRoute
   '/models/$modelId/': typeof AuthedModelsModelIdIndexRoute
   '/models/$modelId/versions/$versionId': typeof AuthedModelsModelIdVersionsVersionIdRoute
   '/models/$modelId/versions/new': typeof AuthedModelsModelIdVersionsNewRoute
@@ -161,6 +177,8 @@ export interface FileRoutesByTo {
   '/models': typeof AuthedModelsIndexRoute
   '/integrations/$integrationId/edit': typeof AuthedIntegrationsIntegrationIdEditRoute
   '/models/$modelId/edit': typeof AuthedModelsModelIdEditRoute
+  '/api/integrations/google-sheets/callback': typeof ApiIntegrationsGoogleSheetsCallbackRoute
+  '/api/integrations/google-sheets/connect': typeof ApiIntegrationsGoogleSheetsConnectRoute
   '/models/$modelId': typeof AuthedModelsModelIdIndexRoute
   '/models/$modelId/versions/$versionId': typeof AuthedModelsModelIdVersionsVersionIdRoute
   '/models/$modelId/versions/new': typeof AuthedModelsModelIdVersionsNewRoute
@@ -183,6 +201,8 @@ export interface FileRoutesById {
   '/_authed/models/': typeof AuthedModelsIndexRoute
   '/_authed/integrations/$integrationId/edit': typeof AuthedIntegrationsIntegrationIdEditRoute
   '/_authed/models/$modelId/edit': typeof AuthedModelsModelIdEditRoute
+  '/api/integrations/google-sheets/callback': typeof ApiIntegrationsGoogleSheetsCallbackRoute
+  '/api/integrations/google-sheets/connect': typeof ApiIntegrationsGoogleSheetsConnectRoute
   '/_authed/models/$modelId/': typeof AuthedModelsModelIdIndexRoute
   '/_authed/models/$modelId/versions/$versionId': typeof AuthedModelsModelIdVersionsVersionIdRoute
   '/_authed/models/$modelId/versions/new': typeof AuthedModelsModelIdVersionsNewRoute
@@ -205,6 +225,8 @@ export interface FileRouteTypes {
     | '/models/'
     | '/integrations/$integrationId/edit'
     | '/models/$modelId/edit'
+    | '/api/integrations/google-sheets/callback'
+    | '/api/integrations/google-sheets/connect'
     | '/models/$modelId/'
     | '/models/$modelId/versions/$versionId'
     | '/models/$modelId/versions/new'
@@ -221,6 +243,8 @@ export interface FileRouteTypes {
     | '/models'
     | '/integrations/$integrationId/edit'
     | '/models/$modelId/edit'
+    | '/api/integrations/google-sheets/callback'
+    | '/api/integrations/google-sheets/connect'
     | '/models/$modelId'
     | '/models/$modelId/versions/$versionId'
     | '/models/$modelId/versions/new'
@@ -242,6 +266,8 @@ export interface FileRouteTypes {
     | '/_authed/models/'
     | '/_authed/integrations/$integrationId/edit'
     | '/_authed/models/$modelId/edit'
+    | '/api/integrations/google-sheets/callback'
+    | '/api/integrations/google-sheets/connect'
     | '/_authed/models/$modelId/'
     | '/_authed/models/$modelId/versions/$versionId'
     | '/_authed/models/$modelId/versions/new'
@@ -251,6 +277,8 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthedRoute: typeof AuthedRouteWithChildren
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiIntegrationsGoogleSheetsCallbackRoute: typeof ApiIntegrationsGoogleSheetsCallbackRoute
+  ApiIntegrationsGoogleSheetsConnectRoute: typeof ApiIntegrationsGoogleSheetsConnectRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -359,6 +387,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/models/$modelId/'
       preLoaderRoute: typeof AuthedModelsModelIdIndexRouteImport
       parentRoute: typeof AuthedModelsModelIdRoute
+    }
+    '/api/integrations/google-sheets/connect': {
+      id: '/api/integrations/google-sheets/connect'
+      path: '/api/integrations/google-sheets/connect'
+      fullPath: '/api/integrations/google-sheets/connect'
+      preLoaderRoute: typeof ApiIntegrationsGoogleSheetsConnectRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/integrations/google-sheets/callback': {
+      id: '/api/integrations/google-sheets/callback'
+      path: '/api/integrations/google-sheets/callback'
+      fullPath: '/api/integrations/google-sheets/callback'
+      preLoaderRoute: typeof ApiIntegrationsGoogleSheetsCallbackRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authed/models/$modelId/edit': {
       id: '/_authed/models/$modelId/edit'
@@ -476,6 +518,10 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthedRoute: AuthedRouteWithChildren,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiIntegrationsGoogleSheetsCallbackRoute:
+    ApiIntegrationsGoogleSheetsCallbackRoute,
+  ApiIntegrationsGoogleSheetsConnectRoute:
+    ApiIntegrationsGoogleSheetsConnectRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

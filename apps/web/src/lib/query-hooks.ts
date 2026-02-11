@@ -1,19 +1,30 @@
-import type { AttributeInput } from "@extractify/shared/attribute-model";
+import {
+  type AttributeInput,
+  AttributeListSchema,
+} from "@extractify/shared/attribute-model";
 import {
   queryOptions,
   useMutation,
+  useQueries,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { extractDataFromModel } from "@/functions/extract-data";
 import { getExtraction, listExtractions } from "@/functions/extractions";
 import { getCurrentUser } from "@/functions/get-current-user";
 import {
+  createSheetsIntegration,
   createWebhookIntegration,
   deleteIntegrationTarget,
+  disconnectSheetsOAuth,
   getIntegrationTarget,
+  getPendingSheetsOAuthSession,
   listIntegrationTargets,
+  startSheetsOAuth,
+  testSheetsIntegration,
   updateIntegrationTarget,
+  updateSheetsIntegration,
   updateWebhookIntegration,
 } from "@/functions/integrations";
 import {
@@ -23,6 +34,7 @@ import {
   getActiveModelVersion,
   getModel,
   listModels,
+  listModelVersions,
   setActiveModelVersion,
   updateModel,
   updateModelVersion,
@@ -32,9 +44,79 @@ import type {
   ExtractionInput,
   ExtractionSummary,
 } from "@/lib/extractions-types";
-import type { IntegrationTarget } from "@/lib/integrations/types";
+import type {
+  CreateSheetsIntegrationInput,
+  IntegrationTarget,
+  PendingSheetsOAuthSession,
+  SheetsMappingModelOption,
+  SheetsMappingModelVersionOption,
+  TestSheetsIntegrationInput,
+  UpdateSheetsIntegrationInput,
+} from "@/lib/integrations/types";
 import type { LlmModelId } from "@/lib/llm-models";
 import { queryKeys } from "@/lib/query-keys";
+
+type SheetsModelListItem = {
+  id: string;
+  name: string;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object";
+}
+
+function toSheetsModelList(data: unknown): SheetsModelListItem[] {
+  if (!Array.isArray(data)) {
+    return [];
+  }
+
+  return data.flatMap((item) => {
+    if (!isRecord(item)) {
+      return [];
+    }
+
+    const id = item.id;
+    const name = item.name;
+    if (typeof id !== "string" || typeof name !== "string") {
+      return [];
+    }
+
+    return [{ id, name }];
+  });
+}
+
+function toSheetsModelVersions(
+  data: unknown,
+): SheetsMappingModelVersionOption[] {
+  if (!Array.isArray(data)) {
+    return [];
+  }
+
+  return data.flatMap((item) => {
+    if (!isRecord(item)) {
+      return [];
+    }
+
+    const id = item.id;
+    const versionNumber = item.versionNumber;
+    const parsedAttributes = AttributeListSchema.safeParse(item.attributes);
+    if (
+      typeof id !== "string" ||
+      typeof versionNumber !== "number" ||
+      !parsedAttributes.success
+    ) {
+      return [];
+    }
+
+    return [
+      {
+        id,
+        versionNumber,
+        attributes: parsedAttributes.data,
+      },
+    ];
+  });
+}
 
 export const mutationKeys = {
   createModel: ["models", "create"] as const,
@@ -45,6 +127,15 @@ export const mutationKeys = {
   setActiveModelVersion: ["models", "versions", "set-active"] as const,
   createIntegration: ["integrations", "create"] as const,
   updateIntegration: ["integrations", "update"] as const,
+  updateSheetsIntegration: ["integrations", "sheets", "update"] as const,
+  testSheetsIntegration: ["integrations", "sheets", "test"] as const,
+  startSheetsOAuth: ["integrations", "sheets", "oauth", "start"] as const,
+  disconnectSheetsOAuth: [
+    "integrations",
+    "sheets",
+    "oauth",
+    "disconnect",
+  ] as const,
   updateIntegrationTarget: ["integrations", "toggle"] as const,
   deleteIntegration: ["integrations", "delete"] as const,
   extractData: ["extractions", "create"] as const,
@@ -75,6 +166,12 @@ export const activeModelVersionQueryOptions = (modelId: string) =>
     queryFn: () => getActiveModelVersion({ data: { modelId } }),
   });
 
+export const modelVersionsQueryOptions = (modelId: string) =>
+  queryOptions({
+    queryKey: [...queryKeys.model(modelId), "versions"] as const,
+    queryFn: () => listModelVersions({ data: { modelId } }),
+  });
+
 export const historyQueryOptions = () =>
   queryOptions({
     queryKey: queryKeys.history,
@@ -100,7 +197,15 @@ export const integrationsQueryOptions = () =>
 export const integrationQueryOptions = (integrationId: string) =>
   queryOptions({
     queryKey: queryKeys.integration(integrationId),
-    queryFn: () => getIntegrationTarget({ data: { targetId: integrationId } }),
+    queryFn: async (): Promise<IntegrationTarget> =>
+      getIntegrationTarget({ data: { targetId: integrationId } }),
+  });
+
+export const pendingSheetsOAuthQueryOptions = () =>
+  queryOptions({
+    queryKey: queryKeys.pendingSheetsOAuth,
+    queryFn: async (): Promise<PendingSheetsOAuthSession | null> =>
+      getPendingSheetsOAuthSession(),
   });
 
 export function useModelsQuery() {
@@ -149,6 +254,32 @@ export function useIntegrationQuery(integrationId: string | undefined | null) {
     ...integrationQueryOptions(integrationId ?? ""),
     enabled: !!integrationId,
   });
+}
+
+export function usePendingSheetsOAuthQuery() {
+  return useQuery(pendingSheetsOAuthQueryOptions());
+}
+
+export function useSheetsModelOptions(): SheetsMappingModelOption[] {
+  const { data: modelsData } = useModelsQuery();
+  const models = useMemo(() => toSheetsModelList(modelsData), [modelsData]);
+
+  const modelVersionQueries = useQueries({
+    queries: models.map((model) => ({
+      ...modelVersionsQueryOptions(model.id),
+      enabled: models.length > 0,
+    })),
+  });
+
+  return useMemo(
+    () =>
+      models.map((model, index) => ({
+        id: model.id,
+        name: model.name,
+        versions: toSheetsModelVersions(modelVersionQueries[index]?.data),
+      })),
+    [models, modelVersionQueries],
+  );
 }
 
 export function usePrefetchModel() {
@@ -368,6 +499,22 @@ export function useCreateWebhookIntegrationMutation() {
   });
 }
 
+export function useCreateSheetsIntegrationMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationKey: mutationKeys.createIntegration,
+    mutationFn: (input: CreateSheetsIntegrationInput) =>
+      createSheetsIntegration({ data: input }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.integrations });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.pendingSheetsOAuth,
+      });
+    },
+  });
+}
+
 export function useUpdateWebhookIntegrationMutation() {
   const queryClient = useQueryClient();
 
@@ -379,6 +526,59 @@ export function useUpdateWebhookIntegrationMutation() {
       await queryClient.invalidateQueries({ queryKey: queryKeys.integrations });
       await queryClient.invalidateQueries({
         queryKey: queryKeys.integration(variables.targetId),
+      });
+    },
+  });
+}
+
+export function useUpdateSheetsIntegrationMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationKey: mutationKeys.updateSheetsIntegration,
+    mutationFn: (input: UpdateSheetsIntegrationInput) =>
+      updateSheetsIntegration({ data: input }),
+    onSuccess: async (_data, variables) => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.integrations });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.integration(variables.targetId),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.pendingSheetsOAuth,
+      });
+    },
+  });
+}
+
+export function useTestSheetsIntegrationMutation() {
+  return useMutation({
+    mutationKey: mutationKeys.testSheetsIntegration,
+    mutationFn: (input: TestSheetsIntegrationInput) =>
+      testSheetsIntegration({ data: input }),
+  });
+}
+
+export function useStartSheetsOAuthMutation() {
+  return useMutation({
+    mutationKey: mutationKeys.startSheetsOAuth,
+    mutationFn: () => startSheetsOAuth(),
+  });
+}
+
+export function useDisconnectSheetsOAuthMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationKey: mutationKeys.disconnectSheetsOAuth,
+    mutationFn: (input: { targetId: string }) =>
+      disconnectSheetsOAuth({ data: input }),
+    onSuccess: async (_data, variables) => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.integrations });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.integration(variables.targetId),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.pendingSheetsOAuth,
       });
     },
   });

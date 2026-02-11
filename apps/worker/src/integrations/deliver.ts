@@ -6,26 +6,9 @@ import {
   listEnabledIntegrationTargetsForOwner,
   updateIntegrationDelivery,
 } from "@extractify/db/integrations";
-import { env } from "@extractify/env/worker";
-import { z } from "zod";
-
-const EncryptedSecretSchema = z.object({
-  version: z.literal("v1"),
-  algorithm: z.literal("aes-256-gcm"),
-  iv: z.string().min(1),
-  tag: z.string().min(1),
-  data: z.string().min(1),
-});
-
-type EncryptedSecret = z.infer<typeof EncryptedSecretSchema>;
-
-const WebhookConfigSchema = z.object({
-  url: z.url(),
-  method: z.enum(["POST", "PUT", "PATCH"]).default("POST"),
-  headers: z.record(z.string(), z.string()).default({}),
-  timeoutMs: z.number().int().positive().default(10_000),
-  secret: EncryptedSecretSchema.optional().nullable(),
-});
+import { WebhookConfigSchema } from "@extractify/shared/integrations";
+import { decryptIntegrationSecret } from "./secrets";
+import { deliverSheetsTarget } from "./sheets-deliver";
 
 type DeliveryTarget = {
   id: string;
@@ -33,6 +16,16 @@ type DeliveryTarget = {
   type: IntegrationTargetType;
   name: string;
   config: Record<string, unknown>;
+};
+
+type WebhookDeliveryTarget = DeliveryTarget & { type: "webhook" };
+type SheetsDeliveryTarget = DeliveryTarget & { type: "sheets" };
+type DeliverableTarget = WebhookDeliveryTarget | SheetsDeliveryTarget;
+
+type DeliveryAttempt = {
+  ok: boolean;
+  status: number | null;
+  errorMessage?: string;
 };
 
 type ExtractionPayload = {
@@ -54,30 +47,6 @@ type ExtractionPayload = {
   };
   result: Record<string, unknown> | null;
 };
-
-const KEY_LENGTH = 32;
-
-function getIntegrationKey(): Buffer {
-  const key = Buffer.from(env.INTEGRATION_SECRETS_KEY, "base64");
-  if (key.length !== KEY_LENGTH) {
-    throw new Error("INTEGRATION_SECRETS_KEY must be 32 bytes base64");
-  }
-  return key;
-}
-
-function decryptSecret(payload: EncryptedSecret): string {
-  const key = getIntegrationKey();
-  const iv = Buffer.from(payload.iv, "base64");
-  const tag = Buffer.from(payload.tag, "base64");
-  const encrypted = Buffer.from(payload.data, "base64");
-  const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
-  decipher.setAuthTag(tag);
-  const decrypted = Buffer.concat([
-    decipher.update(encrypted),
-    decipher.final(),
-  ]);
-  return decrypted.toString("utf8");
-}
 
 function buildExtractionPayload(input: {
   extractionId: string;
@@ -116,12 +85,16 @@ function buildExtractionPayload(input: {
 }
 
 async function deliverWebhook(
-  target: DeliveryTarget,
+  target: WebhookDeliveryTarget,
   payload: ExtractionPayload,
-): Promise<{ ok: boolean; status: number | null }> {
+): Promise<DeliveryAttempt> {
   const parsed = WebhookConfigSchema.safeParse(target.config);
   if (!parsed.success) {
-    return { ok: false, status: null };
+    return {
+      ok: false,
+      status: null,
+      errorMessage: "Invalid webhook configuration",
+    };
   }
 
   const config = parsed.data;
@@ -132,7 +105,7 @@ async function deliverWebhook(
   });
 
   if (config.secret) {
-    const secret = decryptSecret(config.secret);
+    const secret = decryptIntegrationSecret(config.secret);
     const signature = crypto
       .createHmac("sha256", secret)
       .update(body)
@@ -155,6 +128,16 @@ async function deliverWebhook(
     return {
       ok: response.ok,
       status: response.status,
+      errorMessage: response.ok
+        ? undefined
+        : "Webhook endpoint returned an error status",
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      status: null,
+      errorMessage:
+        error instanceof Error ? error.message : "Webhook delivery failed",
     };
   } finally {
     clearTimeout(timeout);
@@ -166,17 +149,20 @@ export async function deliverIntegrations(input: {
   extractionId: string;
   targetIds?: string[];
 }): Promise<void> {
-  const targets = (await listEnabledIntegrationTargetsForOwner(
+  const allTargets = (await listEnabledIntegrationTargetsForOwner(
     input.ownerId,
-    "webhook",
   )) as DeliveryTarget[];
 
   const targetIds = input.targetIds;
-  const filteredTargets = targetIds
-    ? targets.filter((target) => targetIds.includes(target.id))
-    : targets;
+  const selectedTargets = targetIds
+    ? allTargets.filter((target) => targetIds.includes(target.id))
+    : allTargets;
+  const deliverableTargets = selectedTargets.filter(
+    (target): target is DeliverableTarget =>
+      target.type === "webhook" || target.type === "sheets",
+  );
 
-  if (filteredTargets.length === 0) {
+  if (deliverableTargets.length === 0) {
     return;
   }
 
@@ -192,7 +178,7 @@ export async function deliverIntegrations(input: {
     return;
   }
 
-  const payload = buildExtractionPayload({
+  const webhookPayload = buildExtractionPayload({
     extractionId: extraction.id,
     modelId: extraction.modelId,
     modelVersionId: extraction.modelVersionId,
@@ -204,7 +190,7 @@ export async function deliverIntegrations(input: {
   });
 
   const deliveries = await createIntegrationDeliveries(
-    filteredTargets.map((target) => ({
+    deliverableTargets.map((target) => ({
       targetId: target.id,
       extractionId: extraction.id,
     })),
@@ -212,31 +198,51 @@ export async function deliverIntegrations(input: {
 
   await Promise.all(
     deliveries.map(async (delivery) => {
-      const target = filteredTargets.find(
+      const target = deliverableTargets.find(
         (item) => item.id === delivery.targetId,
       );
       if (!target) {
         await updateIntegrationDelivery({
           deliveryId: delivery.id,
           status: "failed",
+          errorMessage: "Target not found",
         });
         return;
       }
 
-      try {
-        const result = await deliverWebhook(target, payload);
+      await updateIntegrationDelivery({
+        deliveryId: delivery.id,
+        status: "processing",
+      });
 
-        await updateIntegrationDelivery({
-          deliveryId: delivery.id,
-          status: result.ok ? "succeeded" : "failed",
-          responseStatus: result.status,
+      let result: DeliveryAttempt;
+      if (target.type === "webhook") {
+        result = await deliverWebhook(target, webhookPayload);
+      } else if (target.type === "sheets") {
+        result = await deliverSheetsTarget({
+          target,
+          extraction: {
+            id: extraction.id,
+            ownerId: extraction.ownerId,
+            modelId: extraction.modelId,
+            modelVersionId: extraction.modelVersionId,
+            result: extraction.result as Record<string, unknown> | null,
+          },
         });
-      } catch (_error) {
-        await updateIntegrationDelivery({
-          deliveryId: delivery.id,
-          status: "failed",
-        });
+      } else {
+        result = {
+          ok: false,
+          status: null,
+          errorMessage: "Integration type is not supported",
+        };
       }
+
+      await updateIntegrationDelivery({
+        deliveryId: delivery.id,
+        status: result.ok ? "succeeded" : "failed",
+        responseStatus: result.status,
+        errorMessage: result.errorMessage ?? null,
+      });
     }),
   );
 }

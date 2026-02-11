@@ -14,6 +14,7 @@
     "@extractify/auth": "workspace:*",
     "@extractify/db": "workspace:*",
     "@extractify/env": "workspace:*",
+    "@extractify/google-sheets": "workspace:*",
     "@extractify/queue": "workspace:*",
     "@extractify/shared": "workspace:*",
     "@radix-ui/react-alert-dialog": "^1.1.2",

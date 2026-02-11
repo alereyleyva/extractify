@@ -17,6 +17,7 @@
     "@aws-sdk/credential-providers": "^3.965.0",
     "@extractify/db": "workspace:*",
     "@extractify/env": "workspace:*",
+    "@extractify/google-sheets": "workspace:*",
     "@extractify/queue": "workspace:*",
     "@extractify/shared": "workspace:*",
     "ai": "^6.0.24",

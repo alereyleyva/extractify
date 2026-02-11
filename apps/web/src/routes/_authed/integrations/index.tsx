@@ -29,7 +29,7 @@ export const Route = createFileRoute("/_authed/integrations/")({
 
 function IntegrationsPage() {
   const { data, isLoading } = useIntegrationsQuery();
-  const targets = (data || []) as unknown as IntegrationTarget[];
+  const targets = data ?? [];
   const updateIntegrationTargetMutation = useUpdateIntegrationTargetMutation();
   const deleteIntegrationTargetMutation = useDeleteIntegrationTargetMutation();
 
@@ -90,7 +90,8 @@ function IntegrationsPage() {
               <div className="mt-4">
                 <p className="font-semibold">No integrations yet</p>
                 <p className="mt-1 text-muted-foreground text-sm">
-                  Create a webhook to receive extraction results.
+                  Create a webhook or Google Sheets target to receive extraction
+                  results.
                 </p>
               </div>
               <Button asChild className="mt-5">
@@ -127,22 +128,44 @@ function IntegrationsPage() {
                         <span className="rounded-full border border-border/60 px-2 py-0.5">
                           {target.type.toUpperCase()}
                         </span>
-                        {target.config.method && (
+                        {target.type === "webhook" && target.config.method && (
                           <span className="rounded-full border border-border/60 px-2 py-0.5">
                             {target.config.method}
                           </span>
                         )}
-                        {target.hasSecret && (
+                        {target.type === "webhook" && target.hasSecret && (
                           <span className="rounded-full border border-border/60 px-2 py-0.5">
                             Signing secret
                           </span>
                         )}
+                        {target.type === "sheets" &&
+                          target.config.sheetName && (
+                            <span className="rounded-full border border-border/60 px-2 py-0.5">
+                              Tab: {target.config.sheetName}
+                            </span>
+                          )}
+                        {target.type === "sheets" && target.config.oauth && (
+                          <span className="rounded-full border border-border/60 px-2 py-0.5">
+                            {target.config.oauth.connected
+                              ? `Google: ${
+                                  target.config.oauth.accountEmail ??
+                                  "Connected"
+                                }`
+                              : "Google: Not connected"}
+                          </span>
+                        )}
                       </div>
-                      {target.config.url && (
+                      {target.type === "webhook" && target.config.url && (
                         <p className="break-all text-muted-foreground text-xs">
                           {target.config.url}
                         </p>
                       )}
+                      {target.type === "sheets" &&
+                        target.config.spreadsheetId && (
+                          <p className="break-all text-muted-foreground text-xs">
+                            Spreadsheet: {target.config.spreadsheetId}
+                          </p>
+                        )}
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <Button asChild size="sm" variant="ghost">

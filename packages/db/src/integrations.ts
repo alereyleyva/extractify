@@ -26,6 +26,7 @@ export type UpdateIntegrationDeliveryInput = {
   deliveryId: string;
   status?: IntegrationDeliveryStatus;
   responseStatus?: number | null;
+  errorMessage?: string | null;
 };
 
 export async function createIntegrationTarget(
@@ -173,6 +174,10 @@ export async function updateIntegrationDelivery(
 
   if (input.responseStatus !== undefined) {
     updateValues.responseStatus = input.responseStatus;
+  }
+
+  if (input.errorMessage !== undefined) {
+    updateValues.errorMessage = input.errorMessage;
   }
 
   if (Object.keys(updateValues).length === 0) {

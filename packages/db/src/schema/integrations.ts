@@ -65,6 +65,7 @@ export const integrationDelivery = pgTable(
       .references(() => extractionRun.id, { onDelete: "cascade" }),
     status: integrationDeliveryStatus("status").default("pending").notNull(),
     responseStatus: integer("response_status"),
+    errorMessage: text("error_message"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()

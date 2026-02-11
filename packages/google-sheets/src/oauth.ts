@@ -2,17 +2,9 @@ import type {
   EncryptedSecret,
   SheetsOAuth,
 } from "@extractify/shared/integrations";
+import { OAuth2Client } from "google-auth-library";
 
 const ACCESS_TOKEN_EXPIRY_SKEW_MS = 60_000;
-
-type GoogleOAuthTokenResponse = {
-  access_token: string;
-  expires_in?: number;
-  refresh_token?: string;
-  scope?: string;
-  token_type?: string;
-  id_token?: string;
-};
 
 export type ResolveSheetsAccessTokenInput = {
   oauth: SheetsOAuth;
@@ -31,40 +23,6 @@ function parseScopeList(scope: string | undefined): string[] {
     .split(" ")
     .map((item) => item.trim())
     .filter(Boolean);
-}
-
-async function refreshGoogleAccessToken(input: {
-  clientId: string;
-  clientSecret: string;
-  refreshToken: string;
-}): Promise<GoogleOAuthTokenResponse> {
-  const response = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: new URLSearchParams({
-      client_id: input.clientId,
-      client_secret: input.clientSecret,
-      refresh_token: input.refreshToken,
-      grant_type: "refresh_token",
-    }),
-  });
-
-  const payload = (await response.json()) as GoogleOAuthTokenResponse & {
-    error?: string;
-    error_description?: string;
-  };
-
-  if (!response.ok || !payload.access_token) {
-    throw new Error(
-      payload.error_description ||
-        payload.error ||
-        "Google token refresh failed",
-    );
-  }
-
-  return payload;
 }
 
 export async function resolveSheetsAccessToken(
@@ -99,28 +57,32 @@ export async function resolveSheetsAccessToken(
     );
   }
 
-  const refreshToken = input.decryptSecret(input.oauth.refreshToken);
-  const refreshed = await refreshGoogleAccessToken({
-    clientId: input.clientId,
-    clientSecret: input.clientSecret,
-    refreshToken,
+  const client = new OAuth2Client(input.clientId, input.clientSecret);
+  client.setCredentials({
+    refresh_token: input.decryptSecret(input.oauth.refreshToken),
   });
 
-  const scopes = parseScopeList(refreshed.scope);
+  const { credentials } = await client.refreshAccessToken();
+
+  if (!credentials.access_token) {
+    throw new Error("Google token refresh failed");
+  }
+
+  const scopes = parseScopeList(credentials.scope);
   const nextOauth: SheetsOAuth = {
     ...input.oauth,
     scopes: scopes.length > 0 ? scopes : input.oauth.scopes,
-    refreshToken: refreshed.refresh_token
-      ? input.encryptSecret(refreshed.refresh_token)
+    refreshToken: credentials.refresh_token
+      ? input.encryptSecret(credentials.refresh_token)
       : input.oauth.refreshToken,
-    accessToken: input.encryptSecret(refreshed.access_token),
-    accessTokenExpiresAt: refreshed.expires_in
-      ? Date.now() + refreshed.expires_in * 1000
+    accessToken: input.encryptSecret(credentials.access_token),
+    accessTokenExpiresAt: credentials.expiry_date
+      ? credentials.expiry_date
       : (input.oauth.accessTokenExpiresAt ?? null),
   };
 
   return {
-    accessToken: refreshed.access_token,
+    accessToken: credentials.access_token,
     oauth: nextOauth,
   };
 }

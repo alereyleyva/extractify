@@ -139,9 +139,11 @@ export const Route = createFileRoute(
             throw new Error("Google did not return a refresh token");
           }
 
-          const accessTokenExpiresAt = tokenResponse.expires_in
-            ? Date.now() + tokenResponse.expires_in * 1000
-            : null;
+          if (!tokenResponse.access_token) {
+            throw new Error("Google did not return an access token");
+          }
+
+          const accessTokenExpiresAt = tokenResponse.expiry_date || null;
           const accountEmail = await fetchGoogleAccountEmail(
             tokenResponse.access_token,
           );

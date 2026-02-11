@@ -1,18 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Globe, PlugZap, PlusCircle } from "lucide-react";
 import { toast } from "sonner";
+import { IntegrationRow } from "@/components/integrations/integration-row";
 import { IntegrationsListSkeleton } from "@/components/skeletons/integrations-skeletons";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { getErrorMessage } from "@/lib/error-handling";
 import type { IntegrationTarget } from "@/lib/integrations/types";
@@ -21,7 +11,6 @@ import {
   useIntegrationsQuery,
   useUpdateIntegrationTargetMutation,
 } from "@/lib/query-hooks";
-import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authed/integrations/")({
   component: IntegrationsPage,
@@ -30,6 +19,7 @@ export const Route = createFileRoute("/_authed/integrations/")({
 function IntegrationsPage() {
   const { data, isLoading } = useIntegrationsQuery();
   const targets = data ?? [];
+
   const updateIntegrationTargetMutation = useUpdateIntegrationTargetMutation();
   const deleteIntegrationTargetMutation = useDeleteIntegrationTargetMutation();
 
@@ -75,11 +65,13 @@ function IntegrationsPage() {
             </Link>
           </Button>
         </div>
+
         <div className="space-y-4">
           <div className="flex items-center gap-2 text-muted-foreground text-sm">
             <Globe className="h-4 w-4" />
             {targets.length === 0 ? "No integrations yet" : "Your integrations"}
           </div>
+
           {isLoading ? (
             <IntegrationsListSkeleton />
           ) : targets.length === 0 ? (
@@ -105,117 +97,12 @@ function IntegrationsPage() {
             <div className="overflow-hidden rounded-2xl border border-border/60 bg-card/40 shadow-sm">
               <div className="divide-y divide-border/40">
                 {targets.map((target) => (
-                  <div
+                  <IntegrationRow
                     key={target.id}
-                    className="flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="space-y-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-medium">{target.name}</p>
-                        <span className="inline-flex items-center gap-2 text-muted-foreground text-xs">
-                          <span
-                            className={cn(
-                              "h-2 w-2 rounded-full",
-                              target.enabled
-                                ? "bg-emerald-500"
-                                : "bg-muted-foreground/40",
-                            )}
-                          />
-                          {target.enabled ? "Enabled" : "Disabled"}
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2 text-muted-foreground text-xs">
-                        <span className="rounded-full border border-border/60 px-2 py-0.5">
-                          {target.type.toUpperCase()}
-                        </span>
-                        {target.type === "webhook" && target.config.method && (
-                          <span className="rounded-full border border-border/60 px-2 py-0.5">
-                            {target.config.method}
-                          </span>
-                        )}
-                        {target.type === "webhook" && target.hasSecret && (
-                          <span className="rounded-full border border-border/60 px-2 py-0.5">
-                            Signing secret
-                          </span>
-                        )}
-                        {target.type === "sheets" &&
-                          target.config.sheetName && (
-                            <span className="rounded-full border border-border/60 px-2 py-0.5">
-                              Tab: {target.config.sheetName}
-                            </span>
-                          )}
-                        {target.type === "sheets" && target.config.oauth && (
-                          <span className="rounded-full border border-border/60 px-2 py-0.5">
-                            {target.config.oauth.connected
-                              ? `Google: ${
-                                  target.config.oauth.accountEmail ??
-                                  "Connected"
-                                }`
-                              : "Google: Not connected"}
-                          </span>
-                        )}
-                      </div>
-                      {target.type === "webhook" && target.config.url && (
-                        <p className="break-all text-muted-foreground text-xs">
-                          {target.config.url}
-                        </p>
-                      )}
-                      {target.type === "sheets" &&
-                        target.config.spreadsheetId && (
-                          <p className="break-all text-muted-foreground text-xs">
-                            Spreadsheet: {target.config.spreadsheetId}
-                          </p>
-                        )}
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Button asChild size="sm" variant="ghost">
-                        <Link
-                          to="/integrations/$integrationId/edit"
-                          params={{ integrationId: target.id }}
-                        >
-                          Edit
-                        </Link>
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button size="sm" variant="destructive">
-                            Delete
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>
-                              Delete integration
-                            </AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This will permanently delete{" "}
-                              <span className="font-medium text-foreground">
-                                {target.name}
-                              </span>{" "}
-                              and its delivery history. This action cannot be
-                              undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              className="bg-destructive text-white hover:bg-destructive/90"
-                              onClick={() => handleDelete(target)}
-                            >
-                              Delete integration
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                      <Button
-                        size="sm"
-                        variant={target.enabled ? "outline" : "default"}
-                        onClick={() => handleToggle(target)}
-                      >
-                        {target.enabled ? "Disable" : "Enable"}
-                      </Button>
-                    </div>
-                  </div>
+                    target={target}
+                    onToggle={handleToggle}
+                    onDelete={handleDelete}
+                  />
                 ))}
               </div>
             </div>

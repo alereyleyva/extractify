@@ -1,5 +1,10 @@
 import crypto from "node:crypto";
 import { env } from "@extractify/env/server";
+import {
+  createSheetsOAuthUrl as createSheetsOAuthUrlShared,
+  exchangeCodeForGoogleTokens as exchangeCodeForGoogleTokensShared,
+  fetchGoogleAccountEmail as fetchGoogleAccountEmailShared,
+} from "@extractify/google-sheets";
 import type { EncryptedSecret } from "@extractify/shared/integrations";
 
 const STATE_TTL_MS = 10 * 60 * 1000;
@@ -7,11 +12,7 @@ const SESSION_TTL_MS = 30 * 60 * 1000;
 
 export const SHEETS_PENDING_OAUTH_COOKIE = "__extractify_sheets_oauth_pending";
 
-export const SHEETS_OAUTH_SCOPES = [
-  "https://www.googleapis.com/auth/spreadsheets",
-  "openid",
-  "email",
-] as const;
+export { SHEETS_OAUTH_SCOPES } from "@extractify/google-sheets";
 
 type SignedTokenEnvelope<TPayload> = {
   version: "v1";
@@ -33,15 +34,6 @@ export type PendingSheetsOAuthSession = {
   accessTokenExpiresAt?: number | null;
   issuedAt: number;
   expiresAt: number;
-};
-
-export type GoogleOAuthTokenResponse = {
-  access_token: string;
-  expires_in?: number;
-  refresh_token?: string;
-  scope?: string;
-  token_type?: string;
-  id_token?: string;
 };
 
 function getSigningKey(): Buffer {
@@ -141,69 +133,26 @@ export function parseSheetsOAuthState(
 }
 
 export function createSheetsOAuthUrl(input: { state: string }): string {
-  const url = new URL("https://accounts.google.com/o/oauth2/v2/auth");
-  url.searchParams.set("client_id", env.GOOGLE_CLIENT_ID);
-  url.searchParams.set("redirect_uri", getSheetsOAuthRedirectUri());
-  url.searchParams.set("response_type", "code");
-  url.searchParams.set("scope", SHEETS_OAUTH_SCOPES.join(" "));
-  url.searchParams.set("access_type", "offline");
-  url.searchParams.set("include_granted_scopes", "true");
-  url.searchParams.set("prompt", "consent");
-  url.searchParams.set("state", input.state);
-  return url.toString();
+  return createSheetsOAuthUrlShared({
+    clientId: env.GOOGLE_CLIENT_ID,
+    redirectUri: getSheetsOAuthRedirectUri(),
+    state: input.state,
+  });
 }
 
-export async function exchangeCodeForGoogleTokens(
-  code: string,
-): Promise<GoogleOAuthTokenResponse> {
-  const response = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: new URLSearchParams({
-      code,
-      client_id: env.GOOGLE_CLIENT_ID,
-      client_secret: env.GOOGLE_CLIENT_SECRET,
-      redirect_uri: getSheetsOAuthRedirectUri(),
-      grant_type: "authorization_code",
-    }),
+export async function exchangeCodeForGoogleTokens(code: string) {
+  return exchangeCodeForGoogleTokensShared({
+    code,
+    clientId: env.GOOGLE_CLIENT_ID,
+    clientSecret: env.GOOGLE_CLIENT_SECRET,
+    redirectUri: getSheetsOAuthRedirectUri(),
   });
-
-  const payload = (await response.json()) as GoogleOAuthTokenResponse & {
-    error?: string;
-    error_description?: string;
-  };
-
-  if (!response.ok || !payload.access_token) {
-    throw new Error(
-      payload.error_description ||
-        payload.error ||
-        "OAuth token exchange failed",
-    );
-  }
-
-  return payload;
 }
 
 export async function fetchGoogleAccountEmail(
   accessToken: string,
 ): Promise<string | undefined> {
-  const response = await fetch(
-    "https://openidconnect.googleapis.com/v1/userinfo",
-    {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    },
-  );
-
-  if (!response.ok) {
-    return undefined;
-  }
-
-  const payload = (await response.json()) as { email?: string };
-  return payload.email;
+  return fetchGoogleAccountEmailShared(accessToken);
 }
 
 export function createPendingSheetsOAuthSession(input: {

@@ -15,6 +15,12 @@ import type {
   SheetsMappingModelOption,
 } from "@/lib/integrations/types";
 
+type SheetsMappingEditorProps = {
+  modelOptions: SheetsMappingModelOption[];
+  value: SheetsMappingInput[];
+  onChange: (next: SheetsMappingInput[]) => void;
+};
+
 function flattenAttributePaths(
   attributes: SheetsMappingModelOption["versions"][number]["attributes"],
   parentPath = "",
@@ -40,6 +46,14 @@ function flattenAttributePaths(
   return paths;
 }
 
+function createClientId(prefix: "mapping" | "column"): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return `${prefix}-${crypto.randomUUID()}`;
+  }
+
+  return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 function createEmptyColumn() {
   return {
     clientId: createClientId("column"),
@@ -58,17 +72,11 @@ function createEmptyMapping(modelId?: string, modelVersionId?: string) {
   };
 }
 
-function createClientId(prefix: "mapping" | "column"): string {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return `${prefix}-${crypto.randomUUID()}`;
-  }
-  return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
-}
-
 function ensureClientIds(
   mappings: SheetsMappingInput[],
 ): SheetsMappingInput[] | null {
   let hasChanges = false;
+
   const next = mappings.map((mapping) => {
     const mappingClientId = mapping.clientId || createClientId("mapping");
     if (!mapping.clientId) {
@@ -79,6 +87,7 @@ function ensureClientIds(
       if (column.clientId) {
         return column;
       }
+
       hasChanges = true;
       return {
         ...column,
@@ -87,7 +96,7 @@ function ensureClientIds(
     });
 
     if (
-      mapping.clientId === mappingClientId &&
+      mappingClientId === mapping.clientId &&
       columns.every((column, index) => column === mapping.columns[index])
     ) {
       return mapping;
@@ -103,15 +112,42 @@ function ensureClientIds(
   return hasChanges ? next : null;
 }
 
+function getDefaultMapping(modelOptions: SheetsMappingModelOption[]) {
+  const firstModel = modelOptions[0];
+  const firstVersion = firstModel?.versions[0];
+  return createEmptyMapping(firstModel?.id, firstVersion?.id);
+}
+
+function updateMapping(
+  mappings: SheetsMappingInput[],
+  mappingIndex: number,
+  updater: (mapping: SheetsMappingInput) => SheetsMappingInput,
+) {
+  return mappings.map((mapping, index) =>
+    index === mappingIndex ? updater(mapping) : mapping,
+  );
+}
+
+function updateColumn(
+  mapping: SheetsMappingInput,
+  columnIndex: number,
+  updater: (
+    column: SheetsMappingInput["columns"][number],
+  ) => SheetsMappingInput["columns"][number],
+) {
+  return {
+    ...mapping,
+    columns: mapping.columns.map((column, index) =>
+      index === columnIndex ? updater(column) : column,
+    ),
+  };
+}
+
 export function SheetsMappingEditor({
   modelOptions,
   value,
   onChange,
-}: {
-  modelOptions: SheetsMappingModelOption[];
-  value: SheetsMappingInput[];
-  onChange: (next: SheetsMappingInput[]) => void;
-}) {
+}: SheetsMappingEditorProps) {
   useEffect(() => {
     const next = ensureClientIds(value);
     if (next) {
@@ -119,26 +155,13 @@ export function SheetsMappingEditor({
     }
   }, [onChange, value]);
 
-  const mappings = useMemo(() => {
+  const displayMappings = useMemo(() => {
     if (value.length > 0) {
       return value;
     }
 
-    if (modelOptions.length > 0) {
-      return [
-        createEmptyMapping(
-          modelOptions[0]?.id,
-          modelOptions[0]?.versions[0]?.id,
-        ),
-      ];
-    }
-
-    return [createEmptyMapping()];
+    return [getDefaultMapping(modelOptions)];
   }, [modelOptions, value]);
-
-  const updateMappings = (next: SheetsMappingInput[]) => {
-    onChange(next);
-  };
 
   return (
     <div className="space-y-4">
@@ -148,13 +171,9 @@ export function SheetsMappingEditor({
           type="button"
           size="sm"
           variant="outline"
-          onClick={() => {
-            const firstModel = modelOptions[0];
-            updateMappings([
-              ...mappings,
-              createEmptyMapping(firstModel?.id, firstModel?.versions[0]?.id),
-            ]);
-          }}
+          onClick={() =>
+            onChange([...displayMappings, getDefaultMapping(modelOptions)])
+          }
         >
           <Plus className="mr-2 h-4 w-4" />
           Add model mapping
@@ -162,7 +181,7 @@ export function SheetsMappingEditor({
       </div>
 
       <div className="space-y-5">
-        {mappings.map((mapping, mappingIndex) => {
+        {displayMappings.map((mapping, mappingIndex) => {
           const selectedModel =
             modelOptions.find((model) => model.id === mapping.modelId) ??
             modelOptions[0];
@@ -193,11 +212,13 @@ export function SheetsMappingEditor({
                   variant="ghost"
                   className="text-destructive"
                   onClick={() =>
-                    updateMappings(
-                      mappings.filter((_, index) => index !== mappingIndex),
+                    onChange(
+                      displayMappings.filter(
+                        (_, index) => index !== mappingIndex,
+                      ),
                     )
                   }
-                  disabled={mappings.length === 1}
+                  disabled={displayMappings.length === 1}
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
                   Remove
@@ -213,14 +234,19 @@ export function SheetsMappingEditor({
                       const model = modelOptions.find(
                         (item) => item.id === modelId,
                       );
-                      const firstVersion = model?.versions[0];
-                      const next = [...mappings];
-                      next[mappingIndex] = {
-                        ...mapping,
-                        modelId,
-                        modelVersionId: firstVersion?.id ?? "",
-                      };
-                      updateMappings(next);
+                      const nextVersionId = model?.versions[0]?.id ?? "";
+
+                      onChange(
+                        updateMapping(
+                          displayMappings,
+                          mappingIndex,
+                          (current) => ({
+                            ...current,
+                            modelId,
+                            modelVersionId: nextVersionId,
+                          }),
+                        ),
+                      );
                     }}
                   >
                     <SelectTrigger className="h-9">
@@ -235,18 +261,23 @@ export function SheetsMappingEditor({
                     </SelectContent>
                   </Select>
                 </div>
+
                 <div className="space-y-2">
                   <Label>Version</Label>
                   <Select
                     value={mapping.modelVersionId || selectedVersion?.id || ""}
-                    onValueChange={(modelVersionId) => {
-                      const next = [...mappings];
-                      next[mappingIndex] = {
-                        ...mapping,
-                        modelVersionId,
-                      };
-                      updateMappings(next);
-                    }}
+                    onValueChange={(modelVersionId) =>
+                      onChange(
+                        updateMapping(
+                          displayMappings,
+                          mappingIndex,
+                          (current) => ({
+                            ...current,
+                            modelVersionId,
+                          }),
+                        ),
+                      )
+                    }
                     disabled={versions.length === 0}
                   >
                     <SelectTrigger className="h-9">
@@ -270,14 +301,18 @@ export function SheetsMappingEditor({
                     type="button"
                     size="sm"
                     variant="outline"
-                    onClick={() => {
-                      const next = [...mappings];
-                      next[mappingIndex] = {
-                        ...mapping,
-                        columns: [...mapping.columns, createEmptyColumn()],
-                      };
-                      updateMappings(next);
-                    }}
+                    onClick={() =>
+                      onChange(
+                        updateMapping(
+                          displayMappings,
+                          mappingIndex,
+                          (current) => ({
+                            ...current,
+                            columns: [...current.columns, createEmptyColumn()],
+                          }),
+                        ),
+                      )
+                    }
                   >
                     <Plus className="mr-2 h-4 w-4" />
                     Add row
@@ -301,52 +336,75 @@ export function SheetsMappingEditor({
                     <Input
                       placeholder="Target column (Sheet)"
                       value={column.columnName}
-                      onChange={(event) => {
-                        const next = [...mappings];
-                        const columns = [...mapping.columns];
-                        columns[columnIndex] = {
-                          ...column,
-                          columnName: event.target.value,
-                        };
-                        next[mappingIndex] = { ...mapping, columns };
-                        updateMappings(next);
-                      }}
+                      onChange={(event) =>
+                        onChange(
+                          updateMapping(
+                            displayMappings,
+                            mappingIndex,
+                            (current) =>
+                              updateColumn(
+                                current,
+                                columnIndex,
+                                (currentColumn) => ({
+                                  ...currentColumn,
+                                  columnName: event.target.value,
+                                }),
+                              ),
+                          ),
+                        )
+                      }
                     />
+
                     <Input
                       placeholder="Source field (Model path)"
                       value={column.sourcePath}
                       list={sourcePathDatalistId}
-                      onChange={(event) => {
-                        const next = [...mappings];
-                        const columns = [...mapping.columns];
-                        columns[columnIndex] = {
-                          ...column,
-                          sourcePath: event.target.value,
-                        };
-                        next[mappingIndex] = { ...mapping, columns };
-                        updateMappings(next);
-                      }}
+                      onChange={(event) =>
+                        onChange(
+                          updateMapping(
+                            displayMappings,
+                            mappingIndex,
+                            (current) =>
+                              updateColumn(
+                                current,
+                                columnIndex,
+                                (currentColumn) => ({
+                                  ...currentColumn,
+                                  sourcePath: event.target.value,
+                                }),
+                              ),
+                          ),
+                        )
+                      }
                     />
+
                     <div className="flex items-center gap-2">
                       <Button
                         type="button"
                         size="icon"
                         variant="ghost"
                         className="text-destructive"
-                        onClick={() => {
-                          const next = [...mappings];
-                          const columns = mapping.columns.filter(
-                            (_, index) => index !== columnIndex,
-                          );
-                          next[mappingIndex] = {
-                            ...mapping,
-                            columns:
-                              columns.length > 0
-                                ? columns
-                                : [createEmptyColumn()],
-                          };
-                          updateMappings(next);
-                        }}
+                        onClick={() =>
+                          onChange(
+                            updateMapping(
+                              displayMappings,
+                              mappingIndex,
+                              (current) => {
+                                const nextColumns = current.columns.filter(
+                                  (_, index) => index !== columnIndex,
+                                );
+
+                                return {
+                                  ...current,
+                                  columns:
+                                    nextColumns.length > 0
+                                      ? nextColumns
+                                      : [createEmptyColumn()],
+                                };
+                              },
+                            ),
+                          )
+                        }
                         aria-label="Remove column mapping"
                       >
                         <Trash2 className="h-4 w-4" />

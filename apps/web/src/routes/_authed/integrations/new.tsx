@@ -3,7 +3,8 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, PlugZap } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { SheetsMappingEditor } from "@/components/integrations/sheets-mapping-editor";
+import { SheetsIntegrationSection } from "@/components/integrations/sheets-integration-section";
+import { WebhookIntegrationFields } from "@/components/integrations/webhook-integration-fields";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,8 +17,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getErrorMessage } from "@/lib/error-handling";
-import { normalizeSheetsMappings } from "@/lib/integrations/sheets-mapping";
-import { openSheetsOAuthPopup } from "@/lib/integrations/sheets-oauth-popup";
+import { validateSheetsFormInput } from "@/lib/integrations/sheets-form";
+import { connectSheetsOAuth } from "@/lib/integrations/sheets-oauth";
 import type {
   IntegrationTargetType,
   SheetsMappingInput,
@@ -30,7 +31,6 @@ import {
   useStartSheetsOAuthMutation,
   useTestSheetsIntegrationMutation,
 } from "@/lib/query-hooks";
-import { queryKeys } from "@/lib/query-keys";
 
 export const Route = createFileRoute("/_authed/integrations/new")({
   component: IntegrationCreatePage,
@@ -39,12 +39,14 @@ export const Route = createFileRoute("/_authed/integrations/new")({
 function IntegrationCreatePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
   const createWebhookIntegrationMutation =
     useCreateWebhookIntegrationMutation();
   const createSheetsIntegrationMutation = useCreateSheetsIntegrationMutation();
   const testSheetsIntegrationMutation = useTestSheetsIntegrationMutation();
   const startSheetsOAuthMutation = useStartSheetsOAuthMutation();
-  const { data: pendingSheetsOauth } = usePendingSheetsOAuthQuery();
+
+  const { data: pendingSheetsOAuth } = usePendingSheetsOAuthQuery();
   const modelOptions = useSheetsModelOptions();
 
   const [name, setName] = useState("");
@@ -57,86 +59,51 @@ function IntegrationCreatePage() {
   const [modelMappings, setModelMappings] = useState<SheetsMappingInput[]>([]);
 
   const handleConnectGoogle = async () => {
-    try {
-      const result = await startSheetsOAuthMutation.mutateAsync();
-      if (!result?.url) {
-        throw new Error("Unable to start OAuth flow");
-      }
-      const oauthResult = await openSheetsOAuthPopup(result.url);
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.pendingSheetsOAuth,
-      });
-
-      if (oauthResult.status === "connected") {
-        toast.success(
-          oauthResult.accountEmail
-            ? `Connected as ${oauthResult.accountEmail}`
-            : "Google account connected",
-        );
-        return;
-      }
-
-      if (oauthResult.status === "closed") {
-        return;
-      }
-
-      if (oauthResult.reason === "popup_blocked") {
-        toast.error("Popup blocked. Please allow popups and try again.");
-        return;
-      }
-
-      toast.error(
-        oauthResult.reason
-          ? `OAuth failed: ${oauthResult.reason}`
-          : "OAuth failed",
-      );
-    } catch (error) {
-      toast.error(getErrorMessage(error));
-    }
+    await connectSheetsOAuth({
+      queryClient,
+      startOAuth: () => startSheetsOAuthMutation.mutateAsync(),
+    });
   };
 
   const handleTestSheets = async () => {
-    if (!spreadsheetInput.trim()) {
-      toast.error("Spreadsheet URL or ID is required");
+    const result = validateSheetsFormInput({
+      spreadsheetInput,
+      sheetName,
+      modelMappings,
+    });
+    if (!result.ok) {
+      toast.error(result.error);
       return;
     }
-    if (!sheetName.trim()) {
-      toast.error("Sheet tab name is required");
-      return;
-    }
-    const normalizedMappings = normalizeSheetsMappings(modelMappings);
-    if (normalizedMappings.length === 0) {
-      toast.error("At least one valid model mapping is required");
-      return;
-    }
+
     try {
-      const result = await testSheetsIntegrationMutation.mutateAsync({
-        spreadsheetInput: spreadsheetInput.trim(),
-        sheetName: sheetName.trim(),
-        modelMappings: normalizedMappings,
-      });
-      toast.success(result.message ?? "Google Sheets test succeeded");
+      const response = await testSheetsIntegrationMutation.mutateAsync(
+        result.data,
+      );
+      toast.success(response.message ?? "Google Sheets test succeeded");
     } catch (error) {
       toast.error(getErrorMessage(error));
     }
   };
 
   const handleCreate = async () => {
-    if (!name.trim()) {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
       toast.error("Integration name is required");
       return;
     }
 
     if (type === "webhook") {
-      if (!url.trim()) {
+      const trimmedUrl = url.trim();
+      if (!trimmedUrl) {
         toast.error("Webhook URL is required");
         return;
       }
 
       try {
         await createWebhookIntegrationMutation.mutateAsync({
-          name: name.trim(),
-          url: url.trim(),
+          name: trimmedName,
+          url: trimmedUrl,
           method,
           secret: secret.trim() || undefined,
         });
@@ -148,33 +115,25 @@ function IntegrationCreatePage() {
       return;
     }
 
-    if (!pendingSheetsOauth) {
+    if (!pendingSheetsOAuth) {
       toast.error("Connect a Google account first");
       return;
     }
 
-    if (!spreadsheetInput.trim()) {
-      toast.error("Spreadsheet URL or ID is required");
-      return;
-    }
-
-    if (!sheetName.trim()) {
-      toast.error("Sheet tab name is required");
-      return;
-    }
-
-    const normalizedMappings = normalizeSheetsMappings(modelMappings);
-    if (normalizedMappings.length === 0) {
-      toast.error("At least one valid model mapping is required");
+    const sheetsFormResult = validateSheetsFormInput({
+      spreadsheetInput,
+      sheetName,
+      modelMappings,
+    });
+    if (!sheetsFormResult.ok) {
+      toast.error(sheetsFormResult.error);
       return;
     }
 
     try {
       await createSheetsIntegrationMutation.mutateAsync({
-        name: name.trim(),
-        spreadsheetInput: spreadsheetInput.trim(),
-        sheetName: sheetName.trim(),
-        modelMappings: normalizedMappings,
+        name: trimmedName,
+        ...sheetsFormResult.data,
       });
       toast.success("Google Sheets integration created");
       await navigate({ to: "/integrations" });
@@ -182,6 +141,10 @@ function IntegrationCreatePage() {
       toast.error(getErrorMessage(error));
     }
   };
+
+  const isSubmitting =
+    createWebhookIntegrationMutation.isPending ||
+    createSheetsIntegrationMutation.isPending;
 
   return (
     <div className="min-h-screen bg-background pt-20 pb-16">
@@ -209,6 +172,7 @@ function IntegrationCreatePage() {
               </div>
             </div>
           </CardHeader>
+
           <CardContent className="space-y-6 pt-6">
             <div className="space-y-2">
               <Label>Type</Label>
@@ -242,129 +206,45 @@ function IntegrationCreatePage() {
               />
             </div>
 
-            {type === "webhook" && (
-              <div className="space-y-5">
-                <div className="space-y-2">
-                  <Label>Webhook URL</Label>
-                  <Input
-                    placeholder="https://hooks.example.com/extractify"
-                    value={url}
-                    onChange={(event) => setUrl(event.target.value)}
-                  />
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>Method</Label>
-                    <Select
-                      value={method}
-                      onValueChange={(value) =>
-                        setMethod(value as "POST" | "PUT" | "PATCH")
-                      }
-                    >
-                      <SelectTrigger className="h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="POST">POST</SelectItem>
-                        <SelectItem value="PUT">PUT</SelectItem>
-                        <SelectItem value="PATCH">PATCH</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Signing secret (optional)</Label>
-                    <Input
-                      placeholder="Used to sign webhook payloads"
-                      value={secret}
-                      onChange={(event) => setSecret(event.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {type === "sheets" && (
-              <div className="space-y-5">
-                <div className="rounded-xl border border-border/60 bg-background p-4">
-                  <p className="font-medium text-sm">Google account</p>
-                  <p className="mb-3 text-muted-foreground text-xs">
-                    OAuth is required to write rows into your sheet.
-                  </p>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <Button
-                      type="button"
-                      variant={pendingSheetsOauth ? "outline" : "default"}
-                      onClick={handleConnectGoogle}
-                      disabled={startSheetsOAuthMutation.isPending}
-                    >
-                      {pendingSheetsOauth
-                        ? "Reconnect Google"
-                        : "Connect Google"}
-                    </Button>
-                    <span className="text-muted-foreground text-xs">
-                      {pendingSheetsOauth
-                        ? `Connected as ${
-                            pendingSheetsOauth.accountEmail ?? "Google account"
-                          }`
-                        : "No Google account connected yet."}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>Spreadsheet URL or ID</Label>
-                    <Input
-                      placeholder="https://docs.google.com/spreadsheets/d/..."
-                      value={spreadsheetInput}
-                      onChange={(event) =>
-                        setSpreadsheetInput(event.target.value)
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Sheet tab name</Label>
-                    <Input
-                      placeholder="Sheet1"
-                      value={sheetName}
-                      onChange={(event) => setSheetName(event.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <SheetsMappingEditor
-                  modelOptions={modelOptions}
-                  value={modelMappings}
-                  onChange={setModelMappings}
-                />
-
-                <div className="flex justify-end">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleTestSheets}
-                    disabled={testSheetsIntegrationMutation.isPending}
-                  >
-                    {testSheetsIntegrationMutation.isPending
-                      ? "Testing..."
-                      : "Test connection"}
-                  </Button>
-                </div>
-              </div>
+            {type === "webhook" ? (
+              <WebhookIntegrationFields
+                url={url}
+                onUrlChange={setUrl}
+                method={method}
+                onMethodChange={setMethod}
+                secret={secret}
+                onSecretChange={setSecret}
+                secretPlaceholder="Used to sign webhook payloads"
+              />
+            ) : (
+              <SheetsIntegrationSection
+                accountDescription="OAuth is required to write rows into your sheet."
+                connectLabel={
+                  pendingSheetsOAuth ? "Reconnect Google" : "Connect Google"
+                }
+                connectVariant={pendingSheetsOAuth ? "outline" : "default"}
+                onConnectGoogle={handleConnectGoogle}
+                isConnectingGoogle={startSheetsOAuthMutation.isPending}
+                accountStatusText={
+                  pendingSheetsOAuth
+                    ? `Connected as ${pendingSheetsOAuth.accountEmail ?? "Google account"}`
+                    : "No Google account connected yet."
+                }
+                spreadsheetInput={spreadsheetInput}
+                onSpreadsheetInputChange={setSpreadsheetInput}
+                sheetName={sheetName}
+                onSheetNameChange={setSheetName}
+                modelOptions={modelOptions}
+                modelMappings={modelMappings}
+                onModelMappingsChange={setModelMappings}
+                onTestConnection={handleTestSheets}
+                isTestingConnection={testSheetsIntegrationMutation.isPending}
+              />
             )}
 
             <div className="flex items-center gap-3">
-              <Button
-                onClick={handleCreate}
-                disabled={
-                  createWebhookIntegrationMutation.isPending ||
-                  createSheetsIntegrationMutation.isPending
-                }
-              >
-                {createWebhookIntegrationMutation.isPending ||
-                createSheetsIntegrationMutation.isPending
-                  ? "Creating..."
-                  : "Create integration"}
+              <Button onClick={handleCreate} disabled={isSubmitting}>
+                {isSubmitting ? "Creating..." : "Create integration"}
               </Button>
               <Button
                 variant="ghost"

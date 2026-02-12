@@ -38,6 +38,7 @@ async function runExtraction(input: {
   }>;
   attributes: z.infer<typeof AttributeSchema>[];
   llmModelId: LlmModelId;
+  systemPrompt?: string | null;
 }) {
   const factory = new ExtractionStrategyFactory();
   const documentSections: string[] = [];
@@ -65,6 +66,7 @@ async function runExtraction(input: {
     output: Output.object({
       schema,
     }),
+    system: input.systemPrompt?.trim() || undefined,
     prompt,
   });
 
@@ -108,6 +110,7 @@ export async function processExtraction(job: ExtractionJobData): Promise<void> {
       files: downloadedFiles,
       attributes: modelVersion.attributes,
       llmModelId,
+      systemPrompt: modelVersion.systemPrompt,
     });
 
     const usage = result.usage

@@ -4,6 +4,7 @@ export type ModelSummary = {
   id: string;
   name: string;
   description?: string | null;
+  systemPrompt?: string | null;
   updatedAt?: string | Date | null;
   activeVersion?: {
     versionNumber: number;
@@ -25,5 +26,6 @@ export type ModelDetail = {
   id: string;
   name: string;
   description?: string | null;
+  systemPrompt?: string | null;
   versions: ModelVersion[];
 };

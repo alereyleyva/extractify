@@ -21,6 +21,7 @@ export const attributeModel = pgTable(
     id: uuid("id").primaryKey(),
     name: text("name").notNull(),
     description: text("description"),
+    systemPrompt: text("system_prompt"),
     ownerId: text("owner_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),

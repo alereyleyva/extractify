@@ -299,6 +299,7 @@ export function usePrefetchExtraction() {
 type CreateModelInput = {
   name: string;
   description?: string;
+  systemPrompt?: string;
   attributes: AttributeInput[];
   changelog?: string;
 };
@@ -307,6 +308,7 @@ type UpdateModelInput = {
   modelId: string;
   name?: string;
   description?: string | null;
+  systemPrompt?: string | null;
 };
 
 type DeleteModelInput = {

@@ -12,6 +12,7 @@ export type CreateModelInput = {
   ownerId: string;
   name: string;
   description?: string;
+  systemPrompt?: string;
   attributes: typeof attributeModelVersion.$inferInsert.attributes;
   changelog?: string;
 };
@@ -29,6 +30,7 @@ export type UpdateModelInput = {
   modelId: string;
   name?: string;
   description?: string | null;
+  systemPrompt?: string | null;
 };
 
 export type UpdateModelVersionInput = {
@@ -109,6 +111,7 @@ export async function getModelVersionById(versionId: string) {
       model: {
         columns: {
           name: true,
+          systemPrompt: true,
         },
       },
     },
@@ -122,6 +125,7 @@ export async function getModelVersionById(versionId: string) {
     versionId: version.id,
     modelId: version.modelId,
     modelName: version.model.name,
+    systemPrompt: version.model.systemPrompt,
     versionNumber: version.versionNumber,
     attributes: version.attributes,
   };
@@ -136,6 +140,7 @@ export async function createModelWithInitialVersion(input: CreateModelInput) {
       id: modelId,
       name: input.name,
       description: input.description,
+      systemPrompt: input.systemPrompt,
       ownerId: input.ownerId,
     });
 
@@ -165,6 +170,10 @@ export async function updateModelInfo(input: UpdateModelInput) {
 
   if (input.description !== undefined) {
     updateValues.description = input.description;
+  }
+
+  if (input.systemPrompt !== undefined) {
+    updateValues.systemPrompt = input.systemPrompt;
   }
 
   if (Object.keys(updateValues).length === 0) {

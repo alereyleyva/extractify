@@ -29,6 +29,7 @@ type ModelDetail = {
   id: string;
   name: string;
   description?: string | null;
+  systemPrompt?: string | null;
 };
 
 export const Route = createFileRoute("/_authed/models/$modelId/edit")({
@@ -44,10 +45,12 @@ function ModelEditPage() {
   const deleteModelMutation = useDeleteModelMutation();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [systemPrompt, setSystemPrompt] = useState("");
 
   useEffect(() => {
     setName(model?.name || "");
     setDescription(model?.description || "");
+    setSystemPrompt(model?.systemPrompt || "");
   }, [model]);
 
   const handleSave = async () => {
@@ -63,6 +66,7 @@ function ModelEditPage() {
         modelId: model.id,
         name: name.trim(),
         description: description.trim() || null,
+        systemPrompt: systemPrompt.trim() || null,
       });
       toast.success("Model updated");
       await navigate({ to: "/models/$modelId", params: { modelId } });
@@ -164,6 +168,12 @@ function ModelEditPage() {
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               rows={3}
+            />
+            <Textarea
+              placeholder="System prompt (optional). General instructions to apply whenever this model is used."
+              value={systemPrompt}
+              onChange={(event) => setSystemPrompt(event.target.value)}
+              rows={6}
             />
             <Button
               onClick={handleSave}

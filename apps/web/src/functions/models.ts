@@ -27,6 +27,7 @@ type ModelWithVersions = {
 const CreateModelSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
+  systemPrompt: z.string().trim().min(1).max(4000).optional(),
   attributes: AttributeListSchema,
   changelog: z.string().optional(),
 });
@@ -36,10 +37,17 @@ const UpdateModelSchema = z
     modelId: z.string().min(1),
     name: z.string().min(1).optional(),
     description: z.string().nullable().optional(),
+    systemPrompt: z.string().trim().min(1).max(4000).nullable().optional(),
   })
-  .refine((data) => data.name !== undefined || data.description !== undefined, {
-    message: "No updates provided.",
-  });
+  .refine(
+    (data) =>
+      data.name !== undefined ||
+      data.description !== undefined ||
+      data.systemPrompt !== undefined,
+    {
+      message: "No updates provided.",
+    },
+  );
 
 const DeleteModelSchema = z.object({
   modelId: z.string().min(1),
@@ -140,6 +148,7 @@ export const createModel = createServerFn({ method: "POST" })
       ownerId,
       name: data.name,
       description: data.description,
+      systemPrompt: data.systemPrompt,
       attributes: data.attributes,
       changelog: data.changelog,
     });
@@ -154,6 +163,7 @@ export const updateModel = createServerFn({ method: "POST" })
       modelId: data.modelId,
       name: data.name,
       description: data.description,
+      systemPrompt: data.systemPrompt,
     });
 
     if (!updated) {

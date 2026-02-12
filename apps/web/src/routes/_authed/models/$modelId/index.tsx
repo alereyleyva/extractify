@@ -92,6 +92,13 @@ function ModelDetailPage() {
         </div>
 
         <div className="rounded-lg bg-card/40 p-6 shadow-sm ring-1 ring-border/40">
+          <div className="mb-6 rounded-lg bg-background/60 p-4 ring-1 ring-border/40">
+            <h2 className="font-semibold text-base">System Prompt</h2>
+            <p className="mt-2 whitespace-pre-wrap text-muted-foreground text-sm">
+              {model.systemPrompt?.trim() ||
+                "No system prompt configured. Extractions will use the default extraction instructions only."}
+            </p>
+          </div>
           <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
             <div>
               <h2 className="font-semibold text-xl">Versions</h2>

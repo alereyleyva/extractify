@@ -21,6 +21,7 @@ function ModelCreatePage() {
   const createModelMutation = useCreateModelMutation();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [systemPrompt, setSystemPrompt] = useState("");
   const [changelog, setChangelog] = useState("");
   const [attributes, setAttributes] = useState<AttributeInput[]>([]);
 
@@ -40,6 +41,7 @@ function ModelCreatePage() {
       const result = await createModelMutation.mutateAsync({
         name: name.trim(),
         description: description.trim() || undefined,
+        systemPrompt: systemPrompt.trim() || undefined,
         changelog: changelog.trim() || undefined,
         attributes: validAttributes,
       });
@@ -84,6 +86,12 @@ function ModelCreatePage() {
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
                 rows={3}
+              />
+              <Textarea
+                placeholder="System prompt (optional). General instructions to apply whenever this model is used."
+                value={systemPrompt}
+                onChange={(event) => setSystemPrompt(event.target.value)}
+                rows={5}
               />
               <Textarea
                 placeholder="Changelog note for v1 (optional)"

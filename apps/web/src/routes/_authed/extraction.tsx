@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Sparkles } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { Attribute } from "@/components/AttributeBuilder";
 import { RouteError } from "@/components/route-error";
@@ -85,6 +85,7 @@ function ExtractionPage() {
     useState<LlmModelId>(DEFAULT_LLM_MODEL_ID);
   const [currentStep, setCurrentStep] = useState<Step>("upload");
   const [hasTouchedIntegrations, setHasTouchedIntegrations] = useState(false);
+  const previousStepRef = useRef<Step | null>(null);
 
   const enabledIntegrationTargets = useMemo(
     () => integrationTargets.filter((target) => target.enabled),
@@ -101,12 +102,36 @@ function ExtractionPage() {
   );
 
   const extractDataMutation = useExtractDataMutation();
+  const goToStep = useCallback((nextStep: Step) => {
+    setCurrentStep((prev) => (prev === nextStep ? prev : nextStep));
+  }, []);
+
+  const clearExtractionRunState = () => {
+    setResults(null);
+    setUsage(null);
+    setIntegrationDeliveries([]);
+  };
 
   useEffect(() => {
     if (results && currentStep === "extract") {
-      setTimeout(() => setCurrentStep("results"), 300);
+      const timeoutId = setTimeout(() => goToStep("results"), 300);
+      return () => clearTimeout(timeoutId);
     }
-  }, [results, currentStep]);
+  }, [results, currentStep, goToStep]);
+
+  useEffect(() => {
+    if (previousStepRef.current === null) {
+      previousStepRef.current = currentStep;
+      return;
+    }
+
+    if (previousStepRef.current === currentStep) {
+      return;
+    }
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    previousStepRef.current = currentStep;
+  }, [currentStep]);
 
   useEffect(() => {
     if (selectedModelId || models.length === 0) {
@@ -143,26 +168,20 @@ function ExtractionPage() {
 
   const handleFileSelect = (files: File[]) => {
     setSelectedFiles(files);
-    setResults(null);
-    setUsage(null);
-    setIntegrationDeliveries([]);
-    setCurrentStep("upload");
+    clearExtractionRunState();
+    goToStep("upload");
   };
 
   const handleFileRemove = (index: number) => {
     setSelectedFiles((prev) => prev.filter((_, current) => current !== index));
-    setResults(null);
-    setUsage(null);
-    setIntegrationDeliveries([]);
-    setCurrentStep("upload");
+    clearExtractionRunState();
+    goToStep("upload");
   };
 
   const handleFileRemoveAll = () => {
     setSelectedFiles([]);
-    setResults(null);
-    setUsage(null);
-    setIntegrationDeliveries([]);
-    setCurrentStep("upload");
+    clearExtractionRunState();
+    goToStep("upload");
   };
 
   const handleExtract = async () => {
@@ -175,9 +194,7 @@ function ExtractionPage() {
       return;
     }
 
-    setResults(null);
-    setUsage(null);
-    setIntegrationDeliveries([]);
+    clearExtractionRunState();
 
     try {
       const selectedModel = models.find(
@@ -217,10 +234,8 @@ function ExtractionPage() {
   const handleReset = () => {
     setSelectedFiles([]);
     setAttributes(currentModelVersion?.attributes ?? []);
-    setResults(null);
-    setUsage(null);
-    setIntegrationDeliveries([]);
-    setCurrentStep("upload");
+    clearExtractionRunState();
+    goToStep("upload");
   };
 
   const canExtract =
@@ -287,11 +302,7 @@ function ExtractionPage() {
             <h1 className="font-bold text-3xl tracking-tight">Extractify</h1>
           </div>
 
-          <Stepper
-            steps={steps}
-            current={currentStep}
-            onNavigate={(step) => setCurrentStep(step)}
-          />
+          <Stepper steps={steps} current={currentStep} onNavigate={goToStep} />
         </div>
 
         <div className="relative min-h-[600px]">
@@ -301,7 +312,7 @@ function ExtractionPage() {
               onFileSelect={handleFileSelect}
               onRemoveFile={handleFileRemove}
               onRemoveAll={handleFileRemoveAll}
-              onContinue={() => setCurrentStep("attributes")}
+              onContinue={() => goToStep("attributes")}
             />
           </StepSection>
 
@@ -311,13 +322,13 @@ function ExtractionPage() {
                 attributes={attributes}
                 onAttributesChange={setAttributes}
                 valid={areAttributesValid(attributes)}
-                onBack={() => setCurrentStep("upload")}
-                onContinue={() => setCurrentStep("extract")}
+                onBack={() => goToStep("upload")}
+                onContinue={() => goToStep("extract")}
                 models={models}
                 selectedModelId={selectedModelId}
                 onModelChange={(modelId) => {
                   setSelectedModelId(modelId);
-                  setCurrentStep("attributes");
+                  goToStep("attributes");
                 }}
                 modelVersionNumber={currentModelVersion?.versionNumber}
                 readOnly
@@ -330,7 +341,7 @@ function ExtractionPage() {
               <ExtractStep
                 canExtract={!!canExtract}
                 isExtracting={extractDataMutation.isPending}
-                onBack={() => setCurrentStep("attributes")}
+                onBack={() => goToStep("attributes")}
                 onExtract={handleExtract}
                 llmModels={LLM_MODELS}
                 selectedLlmModelId={selectedLlmModelId}
@@ -357,9 +368,9 @@ function ExtractionPage() {
                 isLoading={extractDataMutation.isPending}
                 modelId={selectedLlmModelId}
                 integrationDeliveries={integrationDeliveries}
-                onBack={() => setCurrentStep("attributes")}
+                onBack={() => goToStep("attributes")}
                 onRetry={() => {
-                  setCurrentStep("extract");
+                  goToStep("extract");
                   handleExtract();
                 }}
                 onRestart={handleReset}
